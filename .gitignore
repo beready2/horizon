@@ -1,0 +1,4 @@
+prive/
+donnees.json
+*.clair.json
+node_modules/
