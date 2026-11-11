@@ -50,7 +50,7 @@ export function projeter(h, opt = {}) {
     pont = pont * (1 + h.rdtPont) + versPont + fpciPont - retrait;
     besoinPont += retrait;
     if (retraite) pontMin = pontMin === null ? pont : Math.min(pontMin, pont);
-    serie.push({ n, annee: h.annee + n - 1, age, pea, pont, principal });
+    serie.push({ n, annee: h.annee + n - 1, age, pea, pont, principal, versPea: versAnnee + fpciPea, versPont: versPont + fpciPont, retrait });
   }
 
   const brut = pea * (1 - choc);

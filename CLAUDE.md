@@ -18,7 +18,8 @@ La phrase secrète est lue dans la feuille (onglet Lisez-moi, ligne « Phrase se
 1. Construire `prive/donnees.json` au format de `exemple.json` (mêmes clés), depuis la feuille :
    Hypothèses → `hyp`, Suivi → `suivi` (une entrée par relevé, dates ISO), Plan → `echeances`
    et `regles`, Résultats!C19 → `feuille.couvertCentral`, Patrimoine → `matelasMois`,
-   Budget → `ecartEpargne`.
+   Budget → `ecartEpargne` et `budget` (lignes mensuelles signées, excédent avec revenus variables,
+   épargne visée, écart, une phrase de note).
 2. `PHRASE="…" node outils/chiffrer.mjs prive/donnees.json`
 3. `npm test` puis committer uniquement `donnees.chiffre.json`.
 
@@ -26,6 +27,12 @@ La phrase secrète est lue dans la feuille (onglet Lisez-moi, ligne « Phrase se
 `moteur.js` reprend les formules de la feuille (Projection, Résultats, Stress). Toute
 modification du modèle se fait des deux côtés ou pas du tout ; l'app affiche un avertissement
 si son résultat central s'écarte de `feuille.couvertCentral`.
+
+## Affichage
+Une seule page, deux dispositions : téléphone (quatre écrans, l'essentiel) et grand écran à partir
+de 960 px (menu latéral, grand graphique, tableau année par année, historique des relevés, budget).
+Pas de seconde page ni de redirection : tout nouveau contenu se place dans l'une ou l'autre
+disposition du même code.
 
 ## Style
 JavaScript natif en modules, sans dépendance ni étape de construction. Français dans

@@ -2,37 +2,162 @@
   "exemple": true,
   "releve": "2026-11-09",
   "hyp": {
-    "age": 40, "ageDepart": 60, "ageComplement": 70, "annee": 2026, "inflation": 0.02,
-    "pension": 1900, "peaInitial": 10000, "versPea1": 300, "dureePhase1": 3, "versPea2": 500,
-    "versPont": 100, "scpi": 80, "scpiActif": 1, "rdtPont": 0.02,
-    "rdtPeaPrudent": 0.03, "rdtPeaCentral": 0.05, "rdtPeaOptimiste": 0.07,
-    "ps": 0.186, "plafondPea": 150000, "nbPea": 2,
-    "fpciMontant": 40000, "fpciAnnee": 8, "fpciGain": 0, "fpciActif": 1, "fpciPartPont": 0.5,
-    "dureeConso": 25, "rdtReel": 0.03, "pontInitial": 0, "depenses": 2200, "aide": 1200
+    "age": 40,
+    "ageDepart": 60,
+    "ageComplement": 70,
+    "annee": 2026,
+    "inflation": 0.02,
+    "pension": 1900,
+    "peaInitial": 10000,
+    "versPea1": 300,
+    "dureePhase1": 3,
+    "versPea2": 500,
+    "versPont": 100,
+    "scpi": 80,
+    "scpiActif": 1,
+    "rdtPont": 0.02,
+    "rdtPeaPrudent": 0.03,
+    "rdtPeaCentral": 0.05,
+    "rdtPeaOptimiste": 0.07,
+    "ps": 0.186,
+    "plafondPea": 150000,
+    "nbPea": 2,
+    "fpciMontant": 40000,
+    "fpciAnnee": 8,
+    "fpciGain": 0,
+    "fpciActif": 1,
+    "fpciPartPont": 0.5,
+    "dureeConso": 25,
+    "rdtReel": 0.03,
+    "pontInitial": 0,
+    "depenses": 2200,
+    "aide": 1200
   },
   "feuille": null,
   "suivi": [
-    { "date": "2026-08-10", "comptes": 30000, "livrets": 26000, "btc": 9000, "pea": 4000, "scpi": 9500, "av": 500, "parts": 100, "fpci": 20000, "dette": 9000 },
-    { "date": "2026-09-07", "comptes": 30400, "livrets": 26100, "btc": 9900, "pea": 4500, "scpi": 9500, "av": 500, "parts": 100, "fpci": 20000, "dette": 8700 },
-    { "date": "2026-10-05", "comptes": 29800, "livrets": 26300, "btc": 9300, "pea": 5100, "scpi": 9500, "av": 500, "parts": 100, "fpci": 20000, "dette": 8400 },
-    { "date": "2026-11-09", "comptes": 30900, "livrets": 26400, "btc": 10400, "pea": 5600, "scpi": 9500, "av": 500, "parts": 100, "fpci": 20000, "dette": 8100 }
+    {
+      "date": "2026-08-10",
+      "comptes": 30000,
+      "livrets": 26000,
+      "btc": 9000,
+      "pea": 4000,
+      "scpi": 9500,
+      "av": 500,
+      "parts": 100,
+      "fpci": 20000,
+      "dette": 9000
+    },
+    {
+      "date": "2026-09-07",
+      "comptes": 30400,
+      "livrets": 26100,
+      "btc": 9900,
+      "pea": 4500,
+      "scpi": 9500,
+      "av": 500,
+      "parts": 100,
+      "fpci": 20000,
+      "dette": 8700
+    },
+    {
+      "date": "2026-10-05",
+      "comptes": 29800,
+      "livrets": 26300,
+      "btc": 9300,
+      "pea": 5100,
+      "scpi": 9500,
+      "av": 500,
+      "parts": 100,
+      "fpci": 20000,
+      "dette": 8400
+    },
+    {
+      "date": "2026-11-09",
+      "comptes": 30900,
+      "livrets": 26400,
+      "btc": 10400,
+      "pea": 5600,
+      "scpi": 9500,
+      "av": 500,
+      "parts": 100,
+      "fpci": 20000,
+      "dette": 8100
+    }
   ],
-  "btc": { "verse": 8000, "seuilVente": 15000 },
+  "btc": {
+    "verse": 8000,
+    "seuilVente": 15000
+  },
   "matelasMois": 5.5,
   "ecartEpargne": -40,
   "alertes": [
-    { "niveau": "attention", "texte": "Exemple : l'épargne visée dépasse l'excédent mensuel." }
+    {
+      "niveau": "attention",
+      "texte": "Exemple : l'épargne visée dépasse l'excédent mensuel."
+    }
   ],
   "echeances": [
-    { "date": "2026-12-15", "titre": "Premier loyer de la SCPI", "note": "Noter le montant et le rythme réels." },
-    { "date": "2027-07-01", "titre": "Appel de fonds : 10 000 €", "note": "Somme à placer sans risque d'ici là." },
-    { "date": "2029-01-01", "titre": "Fin du crédit", "note": "La mensualité bascule vers l'épargne." },
-    { "date": "2046-01-01", "titre": "Départ à 60 ans", "note": "Début des retraits sur la réserve." },
-    { "date": "2056-01-01", "titre": "70 ans : début du complément", "note": "" }
+    {
+      "date": "2026-12-15",
+      "titre": "Premier loyer de la SCPI",
+      "note": "Noter le montant et le rythme réels."
+    },
+    {
+      "date": "2027-07-01",
+      "titre": "Appel de fonds : 10 000 €",
+      "note": "Somme à placer sans risque d'ici là."
+    },
+    {
+      "date": "2029-01-01",
+      "titre": "Fin du crédit",
+      "note": "La mensualité bascule vers l'épargne."
+    },
+    {
+      "date": "2046-01-01",
+      "titre": "Départ à 60 ans",
+      "note": "Début des retraits sur la réserve."
+    },
+    {
+      "date": "2056-01-01",
+      "titre": "70 ans : début du complément",
+      "note": ""
+    }
   ],
   "regles": [
-    { "titre": "Bitcoin", "texte": "Pas d'argent frais. Vente partielle au seuil fixé.", "jauge": "btc" },
-    { "titre": "Réserve de sécurité", "texte": "6 mois de dépenses, hors placements.", "jauge": "matelas" },
-    { "titre": "Grosse dépense", "texte": "La tester dans « Simuler » avant de décider." }
-  ]
+    {
+      "titre": "Bitcoin",
+      "texte": "Pas d'argent frais. Vente partielle au seuil fixé.",
+      "jauge": "btc"
+    },
+    {
+      "titre": "Réserve de sécurité",
+      "texte": "6 mois de dépenses, hors placements.",
+      "jauge": "matelas"
+    },
+    {
+      "titre": "Grosse dépense",
+      "texte": "La tester dans « Simuler » avant de décider."
+    }
+  ],
+  "budget": {
+    "source": "exemple",
+    "lignes": [
+      {
+        "libelle": "Revenu de base",
+        "mensuel": 2500
+      },
+      {
+        "libelle": "Dépenses courantes",
+        "mensuel": -2300
+      },
+      {
+        "libelle": "Revenus variables",
+        "mensuel": 160
+      }
+    ],
+    "excedent": 360,
+    "epargneVisee": 400,
+    "ecart": -40,
+    "note": "Exemple : sans les revenus variables, l'excédent tombe à 200 € par mois."
+  }
 }

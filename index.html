@@ -64,15 +64,43 @@ input[type=range]{width:100%;height:32px;accent-color:var(--marine);margin:0}
 .frise .rond{width:12px;height:12px;border-radius:999px;margin-top:4px;flex-shrink:0}
 .frise .fil{width:2px;flex:1;background:var(--trait)}
 .frise .corps{flex:1;padding-bottom:16px;display:flex;flex-direction:column;gap:3px}
-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--trait);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:8px 8px calc(10px + env(safe-area-inset-bottom))}
-nav button{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:48px;justify-content:center;font-size:11px;font-weight:500;color:var(--gris);background:none;border:0;cursor:pointer}
-nav button[aria-current="page"]{color:var(--marine);font-weight:600}
+nav.bas{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--trait);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:8px 8px calc(10px + env(safe-area-inset-bottom))}
+nav.bas button{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:48px;justify-content:center;font-size:11px;font-weight:500;color:var(--gris);background:none;border:0;cursor:pointer}
+nav.bas button[aria-current="page"]{color:var(--marine);font-weight:600}
 .verrou{flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:32px 24px}
 .champ{min-height:52px;border:1px solid var(--bord);border-radius:14px;padding:0 16px;font-size:16px;width:100%;background:#fff;color:var(--encre)}
 .erreur{color:#B3261E;font-size:13px;font-weight:500;min-height:18px}
 .bandeau{background:#FFF4CC;color:#5C4400;font-size:12px;font-weight:500;padding:8px 20px;text-align:center}
 .lien{background:none;border:0;color:var(--marine);font-size:13px;font-weight:500;text-decoration:underline;cursor:pointer;min-height:44px;padding:0}
 svg{display:block;width:100%;height:auto}
+/* ---- grand écran ---- */
+#app.large{max-width:1440px;display:grid;grid-template-columns:230px minmax(0,1fr)}
+.large .cote{position:sticky;top:0;height:100vh;height:100dvh;padding:26px 14px 20px;display:flex;flex-direction:column;gap:6px;background:#fff;border-right:1px solid var(--trait)}
+.large .menu{display:flex;flex-direction:column;gap:4px}
+.large .menu button{display:flex;align-items:center;gap:12px;min-height:46px;padding:0 12px;border:0;border-radius:12px;background:none;font-size:14px;font-weight:500;color:var(--gris);cursor:pointer;text-align:left}
+.large .menu button:hover{background:var(--fond)}
+.large .menu button[aria-current="page"]{background:var(--doux);color:var(--marine);font-weight:600}
+.large .contenu{padding:28px 32px 56px;display:flex;flex-direction:column;gap:20px;min-width:0}
+.large .colonnes{display:grid;grid-template-columns:minmax(340px,410px) minmax(0,1fr);gap:24px;align-items:start}
+.large .pile{display:flex;flex-direction:column;gap:20px;min-width:0}
+.large .pad{padding:0}
+.large .entete{display:none}
+.large .hero{border-radius:16px;margin-bottom:14px}
+.large .hero+.pad{padding-top:0}
+.large .hero+.pad>.segments,.large .bouton[data-aller="simuler"]{display:none}
+.grille-cmd{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px 28px}
+.legende{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12px;color:var(--gris)}
+.legende span{display:flex;align-items:center;gap:8px}
+.legende i{width:14px;height:10px;border-radius:3px;display:inline-block}
+.bulle{position:absolute;top:8px;width:190px;background:#1B2430;color:#fff;font-size:12px;line-height:1.5;padding:8px 10px;border-radius:10px;pointer-events:none}
+.defile{overflow-x:auto}
+table.tab{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.tab th,.tab td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--trait);white-space:nowrap}
+.tab th{font-size:12px;font-weight:600;color:var(--gris)}
+.tab th:first-child,.tab td:first-child{text-align:left}
+.tab tr.repere td{background:#FFF4CC}
+.tab tbody tr:last-child td{border-bottom:0}
+
 :focus-visible{outline:3px solid var(--or);outline-offset:2px}
 </style>
 </head>
