@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1F3864">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Horizon">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icone.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<title>Horizon</title>
+<style>
+:root{
+  --fond:#F6F7F9; --carte:#FFFFFF; --marine:#1F3864; --marine2:#2F4C80; --encre:#1B2430;
+  --gris:#5B6675; --trait:#E6EAF0; --bord:#C9D1DD; --ambre:#B45309; --vert:#1E7B45;
+  --clair:#D5DEEE; --or:#F2B21A; --bleu2:#6E8FC9; --doux:#EEF1F6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--fond);color:var(--encre);font-family:Inter,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+body{min-height:100vh;min-height:100dvh}
+button,input{font-family:inherit}
+h1,h2,p{margin:0}
+.titre{font-family:'Space Grotesk',Inter,sans-serif}
+#app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--fond)}
+main{flex:1;display:flex;flex-direction:column;padding-bottom:84px}
+.pad{padding:8px 20px 16px;display:flex;flex-direction:column;gap:14px}
+.entete{padding:26px 20px 10px;display:flex;flex-direction:column;gap:4px}
+.entete h1{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--marine)}
+.sous{font-size:13px;color:var(--gris);line-height:1.45}
+.petit{font-size:12px;color:var(--gris);line-height:1.45}
+.carte{background:var(--carte);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.carte.douce{background:var(--doux)}
+.rangee{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.grille2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.chiffre{font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:-.3px}
+.hero{background:var(--marine);color:#fff;padding:26px 20px 24px;display:flex;flex-direction:column;gap:14px}
+.hero .sous,.hero .petit{color:var(--clair)}
+.pastille{font-size:12px;font-weight:600;background:var(--marine2);padding:6px 10px;border-radius:999px;color:#fff;white-space:nowrap}
+.barre{height:10px;background:var(--trait);border-radius:999px;overflow:hidden}
+.barre>div{height:100%;border-radius:999px}
+.ambre{color:var(--ambre)} .vert{color:var(--vert)} .marine{color:var(--marine)}
+.point{width:8px;height:8px;border-radius:999px;margin-top:6px;flex-shrink:0}
+.ligne{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.45}
+.bouton{display:flex;justify-content:center;align-items:center;min-height:50px;border-radius:14px;font-size:15px;font-weight:600;border:0;background:var(--marine);color:#fff;cursor:pointer;width:100%;padding:0 14px}
+.bouton.creux{background:#fff;color:var(--marine);border:1px solid var(--marine)}
+.segments{display:grid;gap:8px}
+.segments button{min-height:46px;border:1px solid var(--bord);background:#fff;border-radius:12px;font-size:13px;font-weight:500;color:var(--encre);cursor:pointer;padding:0 4px}
+.segments button[aria-pressed="true"]{background:var(--marine);border-color:var(--marine);color:#fff;font-weight:600}
+.reglage{display:flex;flex-direction:column;gap:6px}
+.reglage label{font-size:13px;font-weight:500}
+.reglage output{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--marine)}
+input[type=range]{width:100%;height:32px;accent-color:var(--marine);margin:0}
+.poste{display:flex;align-items:center;gap:12px;min-height:58px;border-bottom:1px solid var(--trait)}
+.poste:last-child{border-bottom:0}
+.puce{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.poste .nom{flex:1;display:flex;flex-direction:column;gap:2px;font-size:14px;font-weight:500}
+.poste .val{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600}
+.frise{display:flex;gap:14px}
+.frise .rail{display:flex;flex-direction:column;align-items:center}
+.frise .rond{width:12px;height:12px;border-radius:999px;margin-top:4px;flex-shrink:0}
+.frise .fil{width:2px;flex:1;background:var(--trait)}
+.frise .corps{flex:1;padding-bottom:16px;display:flex;flex-direction:column;gap:3px}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--trait);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:8px 8px calc(10px + env(safe-area-inset-bottom))}
+nav button{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:48px;justify-content:center;font-size:11px;font-weight:500;color:var(--gris);background:none;border:0;cursor:pointer}
+nav button[aria-current="page"]{color:var(--marine);font-weight:600}
+.verrou{flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:32px 24px}
+.champ{min-height:52px;border:1px solid var(--bord);border-radius:14px;padding:0 16px;font-size:16px;width:100%;background:#fff;color:var(--encre)}
+.erreur{color:#B3261E;font-size:13px;font-weight:500;min-height:18px}
+.bandeau{background:#FFF4CC;color:#5C4400;font-size:12px;font-weight:500;padding:8px 20px;text-align:center}
+.lien{background:none;border:0;color:var(--marine);font-size:13px;font-weight:500;text-decoration:underline;cursor:pointer;min-height:44px;padding:0}
+svg{display:block;width:100%;height:auto}
+:focus-visible{outline:3px solid var(--or);outline-offset:2px}
+</style>
+</head>
+<body>
+<div id="app"><div class="verrou"><p class="sous">Chargement…</p></div></div>
+<noscript>Cette application a besoin de JavaScript.</noscript>
+<script type="module" src="app.js"></script>
+</body>
+</html>
