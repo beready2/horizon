@@ -557,7 +557,7 @@ function engagements(d) {
   const e = d.engagements;
   if (!e) return '';
   return `<div class="carte"><h2 style="font-size:14px;font-weight:600">Liquidités et engagements</h2>
-    <table class="tab"><tbody><tr><td>Liquidités disponibles</td><td>${euro(e.liquidites)}</td></tr>
+    <table class="tab souple"><tbody><tr><td>Liquidités disponibles</td><td>${euro(e.liquidites)}</td></tr>
     ${e.lignes.map((l) => `<tr><td>${esc(l.libelle)}</td><td>− ${euro(l.montant)}</td></tr>`).join('')}
     <tr><td><b>Reste après engagements</b></td><td><b>${euro(e.reste)}</b></td></tr></tbody></table>
     ${e.note ? `<p class="petit">${esc(e.note)}</p>` : ''}</div>`;
