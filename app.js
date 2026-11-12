@@ -114,21 +114,22 @@ function controleFeuille(d) {
 }
 
 function simParDefaut(d) {
-  return { epargnePlus: 0, depenses: d.hyp.depenses, aide: d.hyp.aide, scenario: 'central', choc: 0 };
+  return { epargnePlus: 0, depenses: d.hyp.depenses, aide: d.hyp.aide, scenario: 'central', choc: 0,
+    ageDepart: d.hyp.ageDepart, ponctMontant: 0, ponctAnnee: d.hyp.annee + 1, reel: false };
 }
+const options = (s) => ({ rendement: rendement(s.scenario), epargnePlus: s.epargnePlus, depenses: s.depenses, aide: s.aide,
+  choc: s.choc, ageDepart: s.ageDepart, ponctuelle: { montant: s.ponctMontant, annee: s.ponctAnnee } });
+const NOTE_SIM = (h) => `Les rendements sont des hypothèses, pas des prévisions. Pour un départ après ${h.ageDepart} ans, la pension reste celle d'un départ à ${h.ageDepart} ans, faute de simulation officielle : le résultat est prudent.`;
 
 function ecranSimuler(d) {
-  if (!etat.sim) etat.sim = simParDefaut(d);
-  const s = etat.sim, h = d.hyp;
-  const ref = projeter(h, { rendement: h.rdtPeaCentral });
-  const p = projeter(h, { rendement: rendement(s.scenario), epargnePlus: s.epargnePlus, depenses: s.depenses, aide: s.aide, choc: s.choc });
+  const { s, h, ref, p } = simuler(d);
   const dpts = Math.round((p.couvert - ref.couvert) * 100);
   const L = 320, H = 110;
   const capRef = ref.serie.map((x) => x.pea + Math.max(0, x.pont));
   const cap = p.serie.map((x, i) => (i === p.serie.length - 1 ? x.pea * (1 - s.choc) : x.pea) + Math.max(0, x.pont));
   const max = Math.max(...capRef, ...cap) || 1;
   const trace = (v) => v.map((y, i) => `${((i / (v.length - 1)) * L).toFixed(1)},${(H - 4 - (y / max) * (H - 12)).toFixed(1)}`).join(' ');
-  const xDepart = ((h.ageDepart - h.age) / (h.ageComplement - h.age)) * L;
+  const xDepart = ((p.ageDepart - h.age) / (h.ageComplement - h.age)) * L;
   const depMin = Math.max(Math.ceil(h.pension / 50) * 50, Math.round((h.depenses * 0.75) / 50) * 50);
   return `
   <div class="entete"><h1>Simuler</h1><p class="sous">Bougez un réglage, le résultat suit. Rien n'est enregistré.</p></div>
@@ -145,13 +146,15 @@ function ecranSimuler(d) {
         <polyline points="${trace(capRef)}" fill="none" stroke="#9FB3D6" stroke-width="2" stroke-dasharray="5 5"/>
         <polyline points="${trace(cap)}" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <div class="rangee petit" style="color:var(--clair)"><span>${h.age} ans</span><span style="color:var(--or);font-weight:600">départ ${h.ageDepart} ans</span><span>${h.ageComplement} ans</span></div>
-      <div class="petit" style="color:var(--clair)">${euro(p.revenu)} soutenables pour ${euro(p.besoin)} visés par mois · réserve ${h.ageDepart}-${h.ageComplement} ans : ${p.pontCouvert ? 'couverte' : `manque ${euro(-p.pontMin)}`}</div>
+      <div class="rangee petit" style="color:var(--clair)"><span>${h.age} ans</span><span style="color:var(--or);font-weight:600">départ ${p.ageDepart} ans</span><span>${h.ageComplement} ans</span></div>
+      <div class="petit" style="color:var(--clair)">${euro(p.revenu)} soutenables pour ${euro(p.besoin)} visés par mois · réserve ${p.ageDepart}-${h.ageComplement} ans : ${p.pontCouvert ? 'couverte' : `manque ${euro(-p.pontMin)}`}</div>
     </div>
+    ${revenusParAge(d, true)}
     <div class="carte" style="gap:16px;padding:16px 18px">
       ${reglage('epargnePlus', 'Épargne en plus chaque mois', s.epargnePlus, 0, 1500, 25, (v) => `+ ${euro(v)}`)}
       ${reglage('depenses', 'Dépenses à la retraite', s.depenses, depMin, Math.round((h.depenses * 1.4) / 50) * 50, 50, (v) => `${euro(v)}/mois`)}
       ${reglage('aide', `Aide et adaptation après ${h.ageComplement} ans`, s.aide, 0, 3000, 50, (v) => `${euro(v)}/mois`)}
+      ${reglagesPlus(d)}
     </div>
     <div class="reglage">
       <div style="font-size:13px;font-weight:500">Rendement supposé des actions</div>
@@ -164,7 +167,7 @@ function ecranSimuler(d) {
       <div class="segments" style="grid-template-columns:repeat(4,minmax(0,1fr))" role="group" aria-label="Krach juste avant le début du complément">
         ${[0, 0.1, 0.2, 0.35].map((c) => `<button type="button" data-choc="${c}" aria-pressed="${s.choc === c}">${c === 0 ? 'Aucun' : `− ${pct(c)}`}</button>`).join('')}
       </div>
-      <p class="petit">Les rendements sont des hypothèses, pas des prévisions. L'âge de départ n'est pas réglable : la pension n'est connue que pour un départ à ${h.ageDepart} ans.</p>
+      <p class="petit">${NOTE_SIM(h)}</p>
     </div>
     <button type="button" class="bouton creux" data-raz>Revenir à la référence</button>
   </div>`;
@@ -205,6 +208,7 @@ function ecranPatrimoine(d) {
       <div class="rangee"><h2 style="font-size:14px;font-weight:600">Évolution</h2><div class="petit">${s.length > 1 ? `depuis le ${esc(dateCourte(s[0].date))}` : ''}</div></div>
       ${courbe(s.map(total), { h: 80, couleur: '#1F3864', aire: '#E3E9F4', etiquette: 'Patrimoine mobilisable relevé après relevé' })}
     </div>
+    ${engagements(d)}
   </div>`;
 }
 
@@ -236,6 +240,7 @@ function ecranEcheances(d) {
       ${(d.regles || []).map((g, i) => `${i ? '<div style="height:1px;background:var(--trait)"></div>' : ''}<div style="display:flex;flex-direction:column;gap:4px">
         <div style="font-size:13px;font-weight:500">${esc(g.titre)}</div><div class="sous">${esc(g.texte)}</div>${g.jauge && jauges[g.jauge] ? jauges[g.jauge]() : ''}</div>`).join('')}
     </div>
+    ${horloges(d)}
     <button type="button" class="lien" data-oublier>Verrouiller l'application sur cet appareil</button>
   </div>`;
 }
@@ -249,27 +254,180 @@ const ICONES_G = { ...ICONES, projection: '<path d="M4 20V4M4 20h16M8 16l4-5 3 3
 function simuler(d) {
   if (!etat.sim) etat.sim = simParDefaut(d);
   const s = etat.sim, h = d.hyp;
-  return {
-    s, h,
-    ref: projeter(h, { rendement: h.rdtPeaCentral }),
-    p: projeter(h, { rendement: rendement(s.scenario), epargnePlus: s.epargnePlus, depenses: s.depenses, aide: s.aide, choc: s.choc }),
+  const derniere = h.annee + (s.ageDepart - h.age) - 1;
+  if (s.ponctAnnee > derniere) s.ponctAnnee = derniere;
+  return { s, h, ref: projeter(h, { rendement: h.rdtPeaCentral }), p: projeter(h, options(s)) };
+}
+
+function reglagesPlus(d) {
+  const { s, h } = simuler(d);
+  const annees = [];
+  for (let a = h.annee; a < h.annee + (s.ageDepart - h.age); a++) annees.push(a);
+  return `<div class="reglage"><div style="font-size:13px;font-weight:500">Âge de départ</div>
+      <div class="segments" style="grid-template-columns:repeat(3,minmax(0,1fr))" role="group" aria-label="Âge de départ">
+        ${[0, 1, 2].map((k) => `<button type="button" data-age="${h.ageDepart + k}" aria-pressed="${s.ageDepart === h.ageDepart + k}">${h.ageDepart + k} ans</button>`).join('')}</div></div>
+    <div class="reglage"><div class="rangee"><label for="r-ponctMontant">Dépense ponctuelle, prise sur les livrets</label><output for="r-ponctMontant">${s.ponctMontant ? euro(s.ponctMontant) : 'aucune'}</output></div>
+      <input id="r-ponctMontant" type="range" data-reglage="ponctMontant" min="0" max="40000" step="500" value="${s.ponctMontant}">
+      <div class="rangee" style="align-items:center"><label for="r-ponctAnnee" class="petit">Année de la dépense</label>
+        <select id="r-ponctAnnee" data-reglage="ponctAnnee" class="choix">${annees.map((a) => `<option value="${a}" ${a === s.ponctAnnee ? 'selected' : ''}>${a}</option>`).join('')}</select></div></div>`;
+}
+
+// Revenus mensuels par âge, en euros d'aujourd'hui : pension, réserve, complément, manque.
+function revenusParAge(d, compact = false) {
+  const { s, h, p } = simuler(d);
+  const fin = h.ageComplement + h.dureeConso, barres = [];
+  for (let a = p.ageDepart; a < fin; a++) {
+    if (a < h.ageComplement) {
+      const x = p.serie[a - h.age + 1], defl = Math.pow(1 + h.inflation, x.n) * 12;
+      barres.push({ a, pension: h.pension, reserve: (x.retrait - x.manque) / defl, complement: 0, manque: x.manque / defl, besoin: h.pension + p.ecart });
+    } else {
+      barres.push({ a, pension: h.pension, reserve: 0, complement: Math.min(p.revenu, p.besoin), manque: Math.max(0, p.besoin - p.revenu), besoin: h.pension + p.besoin });
+    }
+  }
+  const L = compact ? 320 : 820, H = compact ? 150 : 260, ml = compact ? 0 : 58, mt = 8, mb = 22;
+  const max = Math.ceil(Math.max(...barres.map((b) => b.besoin)) / 500) * 500;
+  const lb = (L - ml) / barres.length, Y = (v) => mt + (1 - v / max) * (H - mt - mb);
+  const COUL = { pension: '#1F3864', reserve: '#6E8FC9', complement: '#1E7B45', manque: '#F3C9A0' };
+  let rects = '', ligne = '', etiq = '';
+  barres.forEach((b, i) => {
+    let bas = 0;
+    for (const k of ['pension', 'reserve', 'complement', 'manque']) {
+      if (b[k] > 0.5) rects += `<rect x="${(ml + i * lb + 0.5).toFixed(1)}" y="${Y(bas + b[k]).toFixed(1)}" width="${(lb - 1).toFixed(1)}" height="${(Y(bas) - Y(bas + b[k])).toFixed(1)}" fill="${COUL[k]}"/>`;
+      bas += b[k];
+    }
+    ligne += `${i ? ' ' : ''}${(ml + i * lb).toFixed(1)},${Y(b.besoin).toFixed(1)} ${(ml + (i + 1) * lb).toFixed(1)},${Y(b.besoin).toFixed(1)}`;
+    if (b.a % 5 === 0 || (i === 0 && !compact && b.a % 5 < 4)) etiq += `<text x="${(ml + (i + 0.5) * lb).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="11" fill="#5B6675">${b.a}</text>`;
+  });
+  let grille = '';
+  if (!compact) for (let v = 0; v <= max; v += max > 4000 ? 1000 : 500) grille += `<line x1="${ml}" x2="${L}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="#E6EAF0"/><text x="${ml - 8}" y="${(Y(v) + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#5B6675">${nf.format(v)} €</text>`;
+  const avant = barres.filter((b) => b.a < h.ageComplement && b.manque > 1), apres = barres[barres.length - 1];
+  const lecture = [
+    avant.length ? `De ${avant[0].a} à ${h.ageComplement} ans, la réserve ne suffit pas : il manque jusqu'à ${euro(Math.max(...avant.map((b) => b.manque)))} par mois.` : `De ${p.ageDepart} à ${h.ageComplement} ans, pension et réserve couvrent les dépenses.`,
+    apres.manque > 1 ? `Après ${h.ageComplement} ans, il manque ${euro(apres.manque)} par mois sur ${euro(apres.besoin)}.` : `Après ${h.ageComplement} ans, les dépenses sont couvertes.`,
+  ].join(' ');
+  return `<div class="carte" style="gap:10px">
+    <div class="rangee"><h2 style="font-size:14px;font-weight:600">Revenus par âge</h2><div class="petit">par mois, euros d'aujourd'hui${compact ? '' : ' · avec les réglages du simulateur'}</div></div>
+    <svg viewBox="0 0 ${L} ${H}" role="img" aria-label="Revenus mensuels de ${p.ageDepart} à ${fin - 1} ans : pension, réserve, complément tiré du capital, et manque par rapport aux dépenses. ${esc(lecture)}">
+      ${grille}${rects}<polyline points="${ligne}" fill="none" stroke="#1B2430" stroke-width="1.5"/>${etiq}</svg>
+    <div class="legende"><span><i style="background:${COUL.pension}"></i>Pension</span><span><i style="background:${COUL.reserve}"></i>Réserve</span><span><i style="background:${COUL.complement}"></i>Complément tiré du capital</span><span><i style="background:${COUL.manque}"></i>Manque</span><span><i style="background:#1B2430;height:2px"></i>Dépenses</span></div>
+    <p class="sous">${lecture}</p></div>`;
+}
+
+function reserveGraphique(d) {
+  const { h, p } = simuler(d);
+  const pts = p.serie, L = 820, H = 200, ml = 58, mr = 30, mt = 10, mb = 26, n = pts.length - 1;
+  const v = pts.map((x) => x.pont), haut = Math.max(...v, 1), bas = Math.min(...v, 0);
+  const pas = [5000, 10000, 20000, 25000, 50000, 100000].find((q) => (haut - bas) / q <= 6) || 200000;
+  const max = Math.ceil(haut / pas) * pas, min = Math.floor(bas / pas) * pas;
+  const X = (i) => ml + (i / n) * (L - ml - mr), Y = (y) => mt + (1 - (y - min) / (max - min)) * (H - mt - mb);
+  let grille = '', ages = '';
+  for (let y = min; y <= max; y += pas) grille += `<line x1="${ml}" x2="${L - mr}" y1="${Y(y).toFixed(1)}" y2="${Y(y).toFixed(1)}" stroke="${y === 0 ? '#5B6675' : '#E6EAF0'}"/><text x="${ml - 8}" y="${(Y(y) + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#5B6675">${nf.format(y / 1000)} k€</text>`;
+  for (let i = 0; i <= n; i++) if (i === 0 || i === n || ((h.age + i) % 5 === 0 && i > 2 && i < n - 2)) ages += `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="11" fill="#5B6675">${h.age + i} ans</text>`;
+  const trace = v.map((y, i) => `${X(i).toFixed(1)},${Y(y).toFixed(1)}`).join(' ');
+  const vide = pts.find((x) => x.age - 1 >= p.ageDepart && x.pont < 0);
+  const xd = X(p.ageDepart - h.age);
+  const lecture = vide ? `La réserve est épuisée à ${vide.age - 1} ans ; il manque ${euro(-p.pontMin)} au total avant ${h.ageComplement} ans.`
+    : p.anneesReserveNegative.length ? `La dépense ponctuelle entame la réserve de sécurité de ${p.anneesReserveNegative[0]} à ${p.anneesReserveNegative[p.anneesReserveNegative.length - 1]}, puis la réserve tient jusqu'à ${h.ageComplement} ans.`
+    : `La réserve tient jusqu'à ${h.ageComplement} ans ; il en reste ${euro(p.reliquat)} qui s'ajoutent au capital.`;
+  return `<div class="carte" style="gap:10px"><div class="rangee"><h2 style="font-size:14px;font-weight:600">Réserve en livrets et fonds euros</h2><div class="petit">solde en fin d'année, euros courants</div></div>
+    <svg viewBox="0 0 ${L} ${H}" role="img" aria-label="Solde de la réserve de ${h.age} à ${h.ageComplement} ans. ${esc(lecture)}">${grille}
+      <line x1="${xd.toFixed(1)}" x2="${xd.toFixed(1)}" y1="${mt}" y2="${H - mb}" stroke="#B45309" stroke-width="1.5" stroke-dasharray="3 4"/>
+      <polyline points="${trace}" fill="none" stroke="${vide ? '#B3261E' : '#1F3864'}" stroke-width="2.5" stroke-linejoin="round"/>${ages}</svg>
+    <p class="sous">${lecture}</p></div>`;
+}
+
+function sensibilite(d) {
+  const h = d.hyp, base = projeter(h, { rendement: h.rdtPeaCentral });
+  const cas = [
+    ['+ 100 € d\'épargne par mois', { epargnePlus: 100 }],
+    ['− 100 € de dépenses par mois à la retraite', { depenses: h.depenses - 100 }],
+    [`Départ à ${h.ageDepart + 1} ans au lieu de ${h.ageDepart}`, { ageDepart: h.ageDepart + 1 }],
+    ['+ 1 point de rendement des actions', { rendement: h.rdtPeaCentral + 0.01 }],
+    ['− 1 point de rendement des actions', { rendement: h.rdtPeaCentral - 0.01 }],
+    [`Dépense de 10 000 € en ${h.annee + 1}`, { ponctuelle: { montant: 10000, annee: h.annee + 1 } }],
+    [`Krach de 20 % juste avant ${h.ageComplement} ans`, { choc: 0.2 }],
+  ].map(([nom, o]) => { const p = projeter(h, { rendement: h.rdtPeaCentral, ...o }); return { nom, delta: (p.couvert - base.couvert) * 100, couvert: p.couvert }; })
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  const maxi = Math.max(...cas.map((c) => Math.abs(c.delta))) || 1;
+  return `<div class="carte"><div class="rangee"><h2 style="font-size:14px;font-weight:600">Ce qui pèse le plus</h2><div class="petit">effet sur la part du besoin couverte après ${h.ageComplement} ans (référence ${pct(base.couvert)})</div></div>
+    <table class="tab"><tbody>${cas.map((c) => `<tr><td>${esc(c.nom)}</td>
+      <td style="width:34%"><div style="height:8px;border-radius:999px;background:${c.delta >= 0 ? 'var(--vert)' : 'var(--ambre)'};width:${Math.max(2, (Math.abs(c.delta) / maxi) * 100).toFixed(0)}%;margin-left:auto"></div></td>
+      <td style="color:${c.delta >= 0 ? 'var(--vert)' : 'var(--ambre)'};font-weight:600">${c.delta >= 0 ? '+' : '−'} ${Math.abs(c.delta).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} pt</td><td>${pct(c.couvert)}</td></tr>`).join('')}</tbody></table>
+    <p class="petit">Chaque ligne change un seul réglage par rapport à la référence. Les effets ne s'additionnent pas exactement.</p></div>`;
+}
+
+// PEA réel (relevés) contre PEA prévu par le plan à la même date.
+function trajectoire(d) {
+  const h = d.hyp, ref = projeter(h, { rendement: h.rdtPeaCentral }).serie;
+  const jour = (iso) => new Date(`${iso}T12:00:00`).getTime();
+  const debut = jour(d.debutModele || d.suivi[0].date);
+  const reperes = ref.map((x, i) => [i === 0 ? debut : jour(`${x.annee}-12-31`), x.pea]);
+  const prevu = (t) => {
+    if (t <= reperes[0][0]) return reperes[0][1];
+    for (let i = 1; i < reperes.length; i++) if (t <= reperes[i][0]) { const [t0, v0] = reperes[i - 1], [t1, v1] = reperes[i]; return v0 + ((v1 - v0) * (t - t0)) / (t1 - t0); }
+    return reperes[reperes.length - 1][1];
   };
+  const lignes = d.suivi.map((r) => ({ date: r.date, reel: r.pea || 0, prevu: prevu(jour(r.date)) }));
+  const der = lignes[lignes.length - 1], ecart = der.reel - der.prevu;
+  return `<div class="carte"><div class="rangee"><h2 style="font-size:14px;font-weight:600">Suis-je sur la trajectoire ?</h2><div class="petit">PEA réel contre PEA prévu par le plan, rendement central</div></div>
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><div class="chiffre" style="font-size:28px;color:${ecart >= 0 ? 'var(--vert)' : 'var(--ambre)'}">${ecart >= 0 ? 'En avance' : 'En retard'} de ${euro(Math.abs(ecart))}</div>
+      <div class="sous">réel ${euro(der.reel)} · prévu ${euro(der.prevu)} au ${esc(dateCourte(der.date))}</div></div>
+    <div class="defile"><table class="tab"><thead><tr><th>Relevé</th><th>PEA réel</th><th>PEA prévu</th><th>Écart</th></tr></thead><tbody>
+      ${[...lignes].reverse().slice(0, 8).map((l) => `<tr><td>${esc(dateCourte(l.date))}</td><td>${euro(l.reel)}</td><td>${euro(l.prevu)}</td><td style="color:${l.reel >= l.prevu ? 'var(--vert)' : 'var(--ambre)'}">${signe(l.reel - l.prevu)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="petit">Le plan compte dès le premier jour le capital de départ prévu pour le PEA : tant que ce versement n'est pas fait, l'écart lui correspond. Seul le PEA est comparé ; les livrets ne sont pas suivis par le plan.</p></div>`;
+}
+
+function engagements(d) {
+  const e = d.engagements;
+  if (!e) return '';
+  return `<div class="carte"><h2 style="font-size:14px;font-weight:600">Liquidités et engagements</h2>
+    <table class="tab"><tbody><tr><td>Liquidités disponibles</td><td>${euro(e.liquidites)}</td></tr>
+    ${e.lignes.map((l) => `<tr><td>${esc(l.libelle)}</td><td>− ${euro(l.montant)}</td></tr>`).join('')}
+    <tr><td><b>Reste après engagements</b></td><td><b>${euro(e.reste)}</b></td></tr></tbody></table>
+    ${e.note ? `<p class="petit">${esc(e.note)}</p>` : ''}</div>`;
+}
+
+function horloges(d) {
+  if (!d.horloges || !d.horloges.length) return '';
+  const auj = Date.now();
+  return `<div class="carte" style="padding:16px 18px"><h2 style="font-size:14px;font-weight:600">Horloges fiscales</h2>
+    ${d.horloges.map((x) => {
+      const t0 = new Date(`${x.debut}T12:00:00`), t1 = new Date(t0); t1.setFullYear(t1.getFullYear() + x.dureeAns);
+      const f = Math.max(0, Math.min(1, (auj - t0) / (t1 - t0))), resteMois = Math.max(0, Math.round((t1 - auj) / (864e5 * 30.44)));
+      return `<div style="display:flex;flex-direction:column;gap:5px"><div class="rangee"><div style="font-size:13px;font-weight:500">${esc(x.libelle)}</div><div class="petit">${x.dureeAns} ans le ${esc(dateCourte(t1.toISOString().slice(0, 10)))}</div></div>
+        <div class="barre" style="height:8px"><div style="width:${(f * 100).toFixed(1)}%;background:${f >= 1 ? 'var(--vert)' : 'var(--marine)'}"></div></div>
+        <div class="petit">${f >= 1 ? 'Durée atteinte' : `encore ${resteMois >= 24 ? `${Math.floor(resteMois / 12)} ans et ${resteMois % 12} mois` : `${resteMois} mois`}`}${x.note ? ` · ${esc(x.note)}` : ''}</div></div>`;
+    }).join('')}</div>`;
+}
+
+const CLE_SCENARIOS = 'horizon.scenarios';
+function lireScenarios() { try { return JSON.parse(localStorage.getItem(CLE_SCENARIOS)) || []; } catch { return []; } }
+function ecrireScenarios(l) { try { localStorage.setItem(CLE_SCENARIOS, JSON.stringify(l)); } catch { /* stockage indisponible */ } }
+function scenariosEnregistres(d) {
+  const liste = lireScenarios();
+  return `<div style="display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--trait);padding-top:14px">
+    <div style="font-size:13px;font-weight:500">Scénarios enregistrés sur cet appareil</div>
+    ${liste.length ? `<table class="tab"><tbody>${liste.map((x, i) => `<tr><td>${esc(x.nom)}</td><td>${pct(projeter(d.hyp, options({ ...simParDefaut(d), ...x.s })).couvert)}</td>
+      <td style="width:1%"><button type="button" class="lien" data-charger="${i}" style="min-height:32px">Charger</button></td><td style="width:1%"><button type="button" class="lien" data-suppr="${i}" style="min-height:32px" aria-label="Supprimer ${esc(x.nom)}">Supprimer</button></td></tr>`).join('')}</tbody></table>` : '<p class="petit">Aucun pour l\'instant.</p>'}
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><label for="nom-scenario" class="petit" style="position:absolute;left:-9999px">Nom du scénario</label>
+      <input id="nom-scenario" class="champ" style="min-height:44px;font-size:14px;flex:1;min-width:180px" maxlength="40" placeholder="Nom du scénario, par exemple « Mini-pelle 2027 »">
+      <button type="button" class="bouton creux" data-enreg style="width:auto;min-height:44px;font-size:14px">Enregistrer les réglages</button></div></div>`;
 }
 
 function grandGraphique(d) {
   const { s, h, ref, p } = simuler(d);
   const L = 820, H = 340, ml = 58, mr = 30, mt = 12, mb = 30, n = p.serie.length - 1;
   const cap = (pr, choc = 0) => pr.serie.map((x, i) => (i === n ? x.pea * (1 - choc) : x.pea) + Math.max(0, x.pont));
-  const reglages = { epargnePlus: s.epargnePlus, depenses: s.depenses, aide: s.aide };
-  const bas = cap(projeter(h, { ...reglages, rendement: h.rdtPeaPrudent }));
-  const haut = cap(projeter(h, { ...reglages, rendement: h.rdtPeaOptimiste }));
-  const cRef = cap(ref), cSim = cap(p, s.choc);
+    const unite = (v) => (s.reel ? v.map((y, i) => y / Math.pow(1 + h.inflation, i)) : v);
+  const bas = unite(cap(projeter(h, { ...options(s), choc: 0, rendement: h.rdtPeaPrudent })));
+  const haut = unite(cap(projeter(h, { ...options(s), choc: 0, rendement: h.rdtPeaOptimiste })));
+  const cRef = unite(cap(ref)), cSim = unite(cap(p, s.choc));
   const brut = Math.max(...haut, ...cRef, ...cSim);
   const pas = [50000, 100000, 200000, 250000, 500000, 1000000].find((q) => brut / q <= 6) || 2000000;
   const max = Math.ceil(brut / pas) * pas;
   const X = (i) => ml + (i / n) * (L - ml - mr), Y = (v) => mt + (1 - v / max) * (H - mt - mb);
   const trace = (v) => v.map((y, i) => `${X(i).toFixed(1)},${Y(y).toFixed(1)}`).join(' ');
-  const xDepart = X(h.ageDepart - h.age);
+  const xDepart = X(p.ageDepart - h.age);
   let grille = '';
   for (let v = 0; v <= max; v += pas) grille += `<line x1="${ml}" x2="${L - mr}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="#E6EAF0"/><text x="${ml - 8}" y="${(Y(v) + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#5B6675">${nf.format(v / 1000)} k€</text>`;
   let ages = '';
@@ -281,14 +439,14 @@ function grandGraphique(d) {
       <div><div class="sous">Besoin couvert après ${h.ageComplement} ans, avec vos réglages</div>
         <div style="display:flex;align-items:baseline;gap:12px"><div class="chiffre" id="sim-couvert" style="font-size:44px;color:${couleurCouv(p.couvert)}">${pct(p.couvert)}</div>
         <div style="font-size:14px;font-weight:600;color:var(--gris)">${dpts === 0 ? `référence ${pct(ref.couvert)}` : `${dpts > 0 ? '+' : '−'} ${Math.abs(dpts)} point${Math.abs(dpts) > 1 ? 's' : ''} par rapport à la référence (${pct(ref.couvert)})`}</div></div></div>
-      <div class="sous" style="text-align:right">${euro(p.revenu)} soutenables pour ${euro(p.besoin)} visés par mois<br>Réserve ${h.ageDepart}-${h.ageComplement} ans : ${p.pontCouvert ? 'couverte' : `manque ${euro(-p.pontMin)}`} · capital à ${h.ageComplement} ans : ${euro(p.totalAujourdhui)} d'aujourd'hui</div>
+      <div class="sous" style="text-align:right">${euro(p.revenu)} soutenables pour ${euro(p.besoin)} visés par mois<br>Réserve ${p.ageDepart}-${h.ageComplement} ans : ${p.pontCouvert ? 'couverte' : `manque ${euro(-p.pontMin)}`} · capital à ${h.ageComplement} ans : ${euro(p.totalAujourdhui)} d'aujourd'hui</div>
     </div>
     <div data-graphe style="position:relative">
-      <svg viewBox="0 0 ${L} ${H}" role="img" aria-label="Capital projeté (PEA et réserve) de ${h.age} à ${h.ageComplement} ans, en euros courants : simulation, référence et fourchette prudent-optimiste">
+      <svg viewBox="0 0 ${L} ${H}" role="img" aria-label="Capital projeté (PEA et réserve) de ${h.age} à ${h.ageComplement} ans, ${s.reel ? "en euros d'aujourd'hui" : 'en euros courants'} : simulation, référence et fourchette prudent-optimiste">
         ${grille}
         <polygon points="${trace(haut)} ${trace(bas).split(' ').reverse().join(' ')}" fill="#EEF1F6"/>
         <line x1="${xDepart.toFixed(1)}" x2="${xDepart.toFixed(1)}" y1="${mt}" y2="${H - mb}" stroke="#B45309" stroke-width="1.5" stroke-dasharray="3 4"/>
-        <text x="${(xDepart + 6).toFixed(1)}" y="${mt + 12}" font-size="11" font-weight="600" fill="#B45309">départ ${h.ageDepart} ans</text>
+        <text x="${(xDepart + 6).toFixed(1)}" y="${mt + 12}" font-size="11" font-weight="600" fill="#B45309">départ ${p.ageDepart} ans</text>
         <polyline points="${trace(cRef)}" fill="none" stroke="#6E8FC9" stroke-width="2" stroke-dasharray="6 5"/>
         <polyline points="${trace(cSim)}" fill="none" stroke="#1F3864" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         <line id="g-curseur" x1="0" x2="0" y1="${mt}" y2="${H - mb}" stroke="#1B2430" stroke-width="1" visibility="hidden"/>
@@ -296,7 +454,8 @@ function grandGraphique(d) {
       </svg>
       <div id="g-bulle" class="bulle" hidden></div>
     </div>
-    <div class="legende"><span><i style="background:#1F3864"></i>Vos réglages</span><span><i style="background:#6E8FC9"></i>Référence (central, sans réglage)</span><span><i style="background:#EEF1F6;border:1px solid #C9D1DD"></i>Entre rendement prudent et optimiste</span><span>Euros courants, PEA et réserve cumulés</span></div>
+    <div class="legende"><span><i style="background:#1F3864"></i>Vos réglages</span><span><i style="background:#6E8FC9"></i>Référence (central, sans réglage)</span><span><i style="background:#EEF1F6;border:1px solid #C9D1DD"></i>Entre rendement prudent et optimiste</span><span>PEA et réserve cumulés</span>
+      <span class="segments mini" role="group" aria-label="Unité du graphique"><button type="button" data-reel="0" aria-pressed="${!s.reel}">Euros courants</button><button type="button" data-reel="1" aria-pressed="${!!s.reel}">Euros d'aujourd'hui</button></span></div>
   </div>`;
 }
 
@@ -315,17 +474,19 @@ function commandes(d) {
       <div class="reglage"><div style="font-size:13px;font-weight:500">Krach juste avant ${h.ageComplement} ans</div>
         <div class="segments" style="grid-template-columns:repeat(4,minmax(0,1fr))" role="group" aria-label="Krach juste avant le début du complément">
           ${[0, 0.1, 0.2, 0.35].map((c) => `<button type="button" data-choc="${c}" aria-pressed="${s.choc === c}">${c === 0 ? 'Aucun' : `− ${pct(c)}`}</button>`).join('')}</div></div>
+      ${reglagesPlus(d)}
     </div>
-    <p class="petit">Rien n'est enregistré. Les rendements sont des hypothèses, pas des prévisions. L'âge de départ n'est pas réglable : la pension n'est connue que pour un départ à ${h.ageDepart} ans.</p>
+    <p class="petit">${NOTE_SIM(h)}</p>
+    ${scenariosEnregistres(d)}
   </div>`;
 }
 
 function pageProjection(d) {
   const { h, p } = simuler(d);
-  return `${grandGraphique(d)}
+  return `${revenusParAge(d)}${reserveGraphique(d)}
   <div class="carte"><div class="rangee"><h2 style="font-size:14px;font-weight:600">Année par année, avec les réglages du simulateur</h2><div class="petit">euros courants, versements en fin d'année</div></div>
     <div class="defile"><table class="tab"><thead><tr><th>Année</th><th>Âge en fin d'année</th><th>Versé sur le PEA</th><th>PEA</th><th>Versé sur la réserve</th><th>Retrait de la réserve</th><th>Réserve</th><th>Total</th></tr></thead><tbody>
-    ${p.serie.slice(1).map((x) => `<tr${x.age - 1 === h.ageDepart ? ' class="repere"' : ''}><td>${x.annee}</td><td>${x.age}</td><td>${x.versPea ? euro(x.versPea) : '—'}</td><td>${euro(x.pea)}</td><td>${x.versPont ? euro(x.versPont) : '—'}</td><td>${x.retrait ? euro(x.retrait) : '—'}</td><td style="color:${x.pont < 0 ? '#B3261E' : 'inherit'}">${euro(x.pont)}</td><td><b>${euro(x.pea + Math.max(0, x.pont))}</b></td></tr>`).join('')}
+    ${p.serie.slice(1).map((x) => `<tr${x.age - 1 === p.ageDepart ? ' class="repere"' : ''}><td>${x.annee}</td><td>${x.age}</td><td>${x.versPea ? euro(x.versPea) : '—'}</td><td>${euro(x.pea)}</td><td>${x.versPont ? euro(x.versPont) : '—'}</td><td>${x.retrait ? euro(x.retrait) : '—'}</td><td style="color:${x.pont < 0 ? '#B3261E' : 'inherit'}">${euro(x.pont)}</td><td><b>${euro(x.pea + Math.max(0, x.pont))}</b></td></tr>`).join('')}
     </tbody></table></div>
     <p class="petit">La ligne surlignée est la première année de retraite. Le PEA est affiché avant prélèvements sociaux et avant krach éventuel.</p>
   </div>`;
@@ -356,9 +517,9 @@ function afficherGrand(d) {
   if (etat.ecran === 'simuler') etat.ecran = 'accueil';
   etat.scenario = 'central';
   const corps = {
-    accueil: () => `<div class="colonnes"><div>${ecranAccueil(d)}</div><div class="pile">${grandGraphique(d)}${commandes(d)}</div></div>`,
+    accueil: () => `<div class="colonnes"><div>${ecranAccueil(d)}</div><div class="pile">${grandGraphique(d)}${commandes(d)}${sensibilite(d)}</div></div>`,
     projection: () => `<div class="pile">${pageProjection(d)}${commandes(d)}</div>`,
-    patrimoine: () => `<div class="colonnes"><div>${ecranPatrimoine(d)}</div><div class="pile">${historique(d)}</div></div>`,
+    patrimoine: () => `<div class="colonnes"><div>${ecranPatrimoine(d)}</div><div class="pile">${trajectoire(d)}${historique(d)}</div></div>`,
     echeances: () => `<div class="colonnes"><div>${ecranEcheances(d)}</div><div class="pile">${budget(d) || '<div class="carte"><p class="sous">Budget non publié dans cet export.</p></div>'}</div></div>`,
   };
   racine.className = 'large';
@@ -394,6 +555,17 @@ racine.addEventListener('click', (ev) => {
   else if (b.dataset.scenario) { etat.scenario = b.dataset.scenario; afficher(); }
   else if (b.dataset.simScenario) { etat.sim.scenario = b.dataset.simScenario; afficher(); }
   else if (b.dataset.choc !== undefined) { etat.sim.choc = Number(b.dataset.choc); afficher(); }
+  else if (b.dataset.age) { etat.sim.ageDepart = Number(b.dataset.age); afficher(); }
+  else if (b.dataset.reel !== undefined) { etat.sim.reel = b.dataset.reel === '1'; afficher(); }
+  else if ('enreg' in b.dataset) {
+    const nom = document.getElementById('nom-scenario').value.trim();
+    if (!nom) { document.getElementById('nom-scenario').focus(); return; }
+    const { reel, ...reglages } = etat.sim;
+    ecrireScenarios([...lireScenarios().filter((x) => x.nom !== nom), { nom, s: reglages }].slice(-12));
+    afficher();
+  }
+  else if (b.dataset.charger !== undefined) { const x = lireScenarios()[Number(b.dataset.charger)]; if (x) { etat.sim = { ...simParDefaut(etat.donnees), ...x.s }; afficher(); } }
+  else if (b.dataset.suppr !== undefined) { const l = lireScenarios(); l.splice(Number(b.dataset.suppr), 1); ecrireScenarios(l); afficher(); }
   else if ('raz' in b.dataset) { etat.sim = null; afficher(); }
   else if ('oublier' in b.dataset) { try { localStorage.removeItem(CLE_PHRASE); } catch { /* stockage indisponible */ } etat.donnees = null; verrou(); }
   else if ('demo' in b.dataset) { demo(); }

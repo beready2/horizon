@@ -159,5 +159,33 @@
     "epargneVisee": 400,
     "ecart": -40,
     "note": "Exemple : sans les revenus variables, l'excédent tombe à 200 € par mois."
-  }
+  },
+  "debutModele": "2026-08-10",
+  "engagements": {
+    "liquidites": 56900,
+    "lignes": [
+      {
+        "libelle": "Appel de fonds restant",
+        "montant": 10000
+      },
+      {
+        "libelle": "Versement prévu sur le PEA",
+        "montant": 4400
+      }
+    ],
+    "reste": 42500,
+    "note": "Exemple inventé."
+  },
+  "horloges": [
+    {
+      "libelle": "PEA",
+      "debut": "2024-03-01",
+      "dureeAns": 5
+    },
+    {
+      "libelle": "Assurance-vie",
+      "debut": "2021-06-15",
+      "dureeAns": 8
+    }
+  ]
 }

@@ -13,13 +13,16 @@ export function valeurActuelle(taux, n, mensuel) {
   return (mensuel * (1 - Math.pow(1 + taux, -n))) / taux;
 }
 
-// h : hypothèses. opt : { rendement, epargnePlus, choc, depenses, aide }
+// h : hypothèses. opt : { rendement, epargnePlus, choc, depenses, aide, ageDepart,
+// ponctuelle: { montant, annee } }. Une dépense ponctuelle est prise sur la réserve (livrets).
 export function projeter(h, opt = {}) {
   const rendement = opt.rendement ?? h.rdtPeaCentral;
   const epargnePlus = opt.epargnePlus ?? 0;
   const choc = opt.choc ?? 0;
   const depenses = opt.depenses ?? h.depenses;
   const aide = opt.aide ?? h.aide;
+  const ageDepart = opt.ageDepart ?? h.ageDepart;
+  const ponct = opt.ponctuelle && opt.ponctuelle.montant > 0 ? opt.ponctuelle : null;
 
   const horizon = h.ageComplement - h.age;
   const ecart = Math.max(0, depenses - h.pension);
@@ -30,12 +33,13 @@ export function projeter(h, opt = {}) {
   let pont = h.pontInitial ?? 0;
   let pontMin = null;
   let besoinPont = 0;
+  const anneesReserveNegative = [];
   const serie = [{ n: 0, annee: h.annee, age: h.age, pea, pont, principal }];
 
   for (let n = 1; n <= horizon; n++) {
     const age = h.age + n;
-    const actif = age - 1 < h.ageDepart;
-    const retraite = age - 1 >= h.ageDepart && age - 1 < h.ageComplement;
+    const actif = age - 1 < ageDepart;
+    const retraite = age - 1 >= ageDepart && age - 1 < h.ageComplement;
     const versPea = actif ? (n <= h.dureePhase1 ? h.versPea1 : h.versPea2) + epargnePlus : 0;
     const loyers = actif ? h.scpi * h.scpiActif : 0;
     const versAnnee = 12 * (versPea + loyers);
@@ -47,10 +51,15 @@ export function projeter(h, opt = {}) {
 
     pea = pea * (1 + rendement) + versAnnee + fpciPea;
     principal += versAnnee + fpciPea;
-    pont = pont * (1 + h.rdtPont) + versPont + fpciPont - retrait;
+    const ponctuel = ponct && h.annee + n - 1 === ponct.annee ? ponct.montant : 0;
+    const pontAvant = pont;
+    pont = pont * (1 + h.rdtPont) + versPont + fpciPont - retrait - ponctuel;
+    // Part du retrait de l'année que la réserve n'a pas pu payer
+    const manque = retraite ? Math.min(retrait, Math.max(0, Math.max(0, -pont) - Math.max(0, -pontAvant))) : 0;
+    if (!retraite && pont < 0) anneesReserveNegative.push(h.annee + n - 1);
     besoinPont += retrait;
     if (retraite) pontMin = pontMin === null ? pont : Math.min(pontMin, pont);
-    serie.push({ n, annee: h.annee + n - 1, age, pea, pont, principal, versPea: versAnnee + fpciPea, versPont: versPont + fpciPont, retrait });
+    serie.push({ n, annee: h.annee + n - 1, age, pea, pont, principal, versPea: versAnnee + fpciPea, versPont: versPont + fpciPont, retrait, manque, ponctuel });
   }
 
   const brut = pea * (1 - choc);
@@ -68,7 +77,7 @@ export function projeter(h, opt = {}) {
   const ecartCapital = Math.max(0, capitalNecessaire - totalAujourdhui);
 
   // Épargne mensuelle à ajouter jusqu'au départ pour combler l'écart
-  const annees = h.ageDepart - h.age;
+  const annees = ageDepart - h.age;
   let epargneAAjouter = 0;
   if (ecartCapital > 0 && annees > 0) {
     const brutPourUn = rendement === 0
@@ -79,7 +88,7 @@ export function projeter(h, opt = {}) {
   }
 
   return {
-    horizon, ecart, besoin, brut, principal, net, reliquat, total, totalAujourdhui,
+    horizon, ecart, besoin, ageDepart, anneesReserveNegative, brut, principal, net, reliquat, total, totalAujourdhui,
     revenu, couvert, capitalNecessaire, ecartCapital, epargneAAjouter,
     pontFinal: pont, pontMin: pontMin ?? pont, besoinPont, pontCouvert: (pontMin ?? pont) >= 0,
     depassementPlafond: Math.max(0, principal - h.plafondPea * h.nbPea),

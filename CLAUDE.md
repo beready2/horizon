@@ -15,11 +15,8 @@ La feuille Google « finance » du projet BE READY fait foi. L'app n'a pas de do
 La phrase secrète est lue dans la feuille (onglet Lisez-moi, ligne « Phrase secrète de l'app »).
 
 ## Export (à chaque relevé)
-1. Construire `prive/donnees.json` au format de `exemple.json` (mêmes clés), depuis la feuille :
-   Hypothèses → `hyp`, Suivi → `suivi` (une entrée par relevé, dates ISO), Plan → `echeances`
-   et `regles`, Résultats!C19 → `feuille.couvertCentral`, Patrimoine → `matelasMois`,
-   Budget → `ecartEpargne` et `budget` (lignes mensuelles signées, excédent avec revenus variables,
-   épargne visée, écart, une phrase de note).
+1. Construire `prive/donnees.json` au format de `exemple.json` (mêmes clés), depuis la feuille,
+   en suivant la table de correspondance de `outils/export.md`.
 2. `PHRASE="…" node outils/chiffrer.mjs prive/donnees.json`
 3. `npm test` puis committer uniquement `donnees.chiffre.json`.
 
@@ -30,9 +27,16 @@ si son résultat central s'écarte de `feuille.couvertCentral`.
 
 ## Affichage
 Une seule page, deux dispositions : téléphone (quatre écrans, l'essentiel) et grand écran à partir
-de 960 px (menu latéral, grand graphique, tableau année par année, historique des relevés, budget).
+de 960 px (menu latéral, grand graphique, revenus par âge, réserve, tableau année par année,
+sensibilité, trajectoire du PEA, historique des relevés, budget, scénarios enregistrés).
 Pas de seconde page ni de redirection : tout nouveau contenu se place dans l'une ou l'autre
 disposition du même code.
+
+## Simulateur
+Une dépense ponctuelle est prise sur la réserve (livrets), jamais sur le PEA. Pour un départ plus
+tardif que l'âge de référence, la pension reste celle de l'âge de référence tant qu'aucune
+simulation officielle n'est fournie : l'app le dit à l'écran. Les scénarios enregistrés restent
+sur l'appareil (stockage local), ils ne sont jamais publiés.
 
 ## Style
 JavaScript natif en modules, sans dépendance ni étape de construction. Français dans
