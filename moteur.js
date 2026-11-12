@@ -25,7 +25,9 @@ export function projeter(h, opt = {}) {
   const ponct = opt.ponctuelle && opt.ponctuelle.montant > 0 ? opt.ponctuelle : null;
 
   const horizon = h.ageComplement - h.age;
-  const ecart = Math.max(0, depenses - h.pension);
+  // Loyers SCPI nets perçus à partir du départ (constants en euros d'aujourd'hui) : ils réduisent l'écart.
+  const loyersNets = (h.scpiApres ?? 0) * (1 - (h.taxeScpiApres ?? 0)) * (h.scpiActif ?? 1);
+  const ecart = Math.max(0, depenses - h.pension - loyersNets);
   const besoin = ecart + aide;
 
   let pea = h.peaInitial;
@@ -40,7 +42,7 @@ export function projeter(h, opt = {}) {
     const age = h.age + n;
     const actif = age - 1 < ageDepart;
     const retraite = age - 1 >= ageDepart && age - 1 < h.ageComplement;
-    const versPea = actif ? (n <= h.dureePhase1 ? h.versPea1 : h.versPea2) + epargnePlus : 0;
+    const versPea = actif ? Math.max(0, (n <= h.dureePhase1 ? h.versPea1 : h.versPea2) + epargnePlus) : 0;
     const loyers = actif ? h.scpi * h.scpiActif : 0;
     const versAnnee = 12 * (versPea + loyers);
     const versPont = actif ? 12 * h.versPont : 0;
@@ -88,7 +90,7 @@ export function projeter(h, opt = {}) {
   }
 
   return {
-    horizon, ecart, besoin, ageDepart, anneesReserveNegative, brut, principal, net, reliquat, total, totalAujourdhui,
+    horizon, ecart, besoin, loyersNets, ageDepart, anneesReserveNegative, brut, principal, net, reliquat, total, totalAujourdhui,
     revenu, couvert, capitalNecessaire, ecartCapital, epargneAAjouter, rendement, gains, inflationCumulee, tauxMensuel, mois,
     pontFinal: pont, pontMin: pontMin ?? pont, besoinPont, pontCouvert: (pontMin ?? pont) >= 0,
     depassementPlafond: Math.max(0, principal - h.plafondPea * h.nbPea),

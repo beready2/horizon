@@ -31,7 +31,9 @@
     "rdtReel": 0.03,
     "pontInitial": 0,
     "depenses": 2200,
-    "aide": 1200
+    "aide": 1200,
+    "scpiApres": 0,
+    "taxeScpiApres": 0
   },
   "feuille": null,
   "suivi": [
@@ -158,7 +160,8 @@
     "excedent": 360,
     "epargneVisee": 400,
     "ecart": -40,
-    "note": "Exemple : sans les revenus variables, l'excédent tombe à 200 € par mois."
+    "note": "Exemple : sans les revenus variables, l'excédent tombe à 200 € par mois.",
+    "consommation": 2300
   },
   "debutModele": "2026-08-10",
   "engagements": {

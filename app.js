@@ -6,7 +6,7 @@ const CLE_PHRASE = 'horizon.phrase';
 const CLE_THEME = 'horizon.theme';
 // En thème sombre, les couleurs écrites en dur dans les graphiques sont remplacées à l'affichage.
 const SOMBRE = { '#1F3864': '#A9C1EE', '#E6EAF0': '#263041', '#5B6675': '#A3AEBD', '#EEF1F6': '#243044', '#E3E9F4': '#1E2A3F',
-  '#1B2430': '#E8ECF2', '#B45309': '#F0A04B', '#1E7B45': '#5CCB8B', '#B3261E': '#FF8A80', '#3F5F9A': '#7FA0DC', '#C9D1DD': '#3A465A', '#F3C9A0': '#8A6238' };
+  '#1B2430': '#E8ECF2', '#B45309': '#F0A04B', '#1E7B45': '#5CCB8B', '#B3261E': '#FF8A80', '#3F5F9A': '#7FA0DC', '#C9D1DD': '#3A465A', '#F3C9A0': '#8A6238', '#D9A441': '#C9983F' };
 const themeSombre = () => document.documentElement.dataset.theme === 'sombre';
 const teinter = (html) => (themeSombre() ? html.replace(/#[0-9A-Fa-f]{6}\b/g, (c) => SOMBRE[c.toUpperCase()] || SOMBRE[c] || c) : html);
 function appliquerTheme(nom) {
@@ -168,7 +168,7 @@ function ecranSimuler(d) {
     </div>
     ${revenusParAge(d, true)}
     <div class="carte" style="gap:16px;padding:16px 18px">
-      ${reglage('epargnePlus', 'Épargne en plus chaque mois', s.epargnePlus, 0, 1500, 25, (v) => `+ ${euro(v)}`)}
+      ${reglageAvantRetraite(d)}
       ${reglage('depenses', 'Dépenses à la retraite', s.depenses, depMin, Math.round((h.depenses * 1.4) / 50) * 50, 50, (v) => `${euro(v)}/mois`)}
       ${reglage('aide', `Aide et adaptation après ${h.ageComplement} ans`, s.aide, 0, 3000, 50, (v) => `${euro(v)}/mois`)}
       ${reglagesPlus(d)}
@@ -188,6 +188,28 @@ function ecranSimuler(d) {
     </div>
     <button type="button" class="bouton creux" data-raz>Revenir à la référence</button>
   </div>`;
+}
+
+
+// Dépenses mensuelles actuelles : chaque euro non dépensé est épargné (PEA d'abord). Sans budget publié, on garde le réglage d'épargne.
+const baseDepenses = (d) => (d.budget && typeof d.budget.consommation === 'number' ? d.budget.consommation : null);
+function depenseMaximale(d) {
+  const { s, h } = simuler(d), base = baseDepenses(d);
+  const couv = (x) => projeter(h, { ...options(s), epargnePlus: base - x }).couvert;
+  const bas = Math.max(1000, base - 1500), haut = base + 1500;
+  if (couv(bas) < 0.995) return { etat: 'impossible', bas };
+  if (couv(haut) >= 0.995) return { etat: 'libre', haut };
+  return { etat: 'valeur', x: resoudre(couv, 1, bas, haut, false) };
+}
+function reglageAvantRetraite(d) {
+  const { s } = simuler(d), base = baseDepenses(d);
+  if (base === null) return reglage('epargnePlus', 'Épargne en plus chaque mois', s.epargnePlus, 0, 1500, 25, (v) => `+ ${euro(v)}`);
+  const dep = base - s.epargnePlus, visee = d.budget.epargneVisee ?? 0, m = depenseMaximale(d);
+  const lecture = m.etat === 'valeur' ? `Pour être couvert à 100 %, ne pas dépasser <b>${euro(m.x)}</b> par mois avant la retraite.`
+    : m.etat === 'libre' ? `La couverture de 100 % est atteinte même avec ${euro(m.haut)} de dépenses.`
+    : `Réduire les dépenses actuelles ne suffit pas, même à ${euro(m.bas)} par mois.`;
+  return `<div class="reglage">${reglage('depActuelles', 'Dépenses mensuelles avant la retraite', dep, Math.max(1000, Math.round((base - 1000) / 25) * 25), Math.round((base + 500) / 25) * 25, 25, (v) => `${euro(v)}/mois`)}
+    <p class="petit">Épargne qui en découle : <b>${euro(visee + s.epargnePlus)} par mois</b> (visée ${euro(visee)}). Chaque euro non dépensé est placé. ${lecture}</p></div>`;
 }
 
 function reglage(cle, libelle, valeur, min, max, pas, fmt) {
@@ -298,19 +320,19 @@ function revenusParAge(d, compact = false) {
   for (let a = p.ageDepart; a < fin; a++) {
     if (a < h.ageComplement) {
       const x = p.serie[a - h.age + 1], defl = Math.pow(1 + h.inflation, x.n) * 12;
-      barres.push({ a, pension: h.pension, reserve: (x.retrait - x.manque) / defl, complement: 0, manque: x.manque / defl, besoin: h.pension + p.ecart });
+      barres.push({ a, pension: h.pension, loyers: p.loyersNets, reserve: (x.retrait - x.manque) / defl, complement: 0, manque: x.manque / defl, besoin: h.pension + p.loyersNets + p.ecart });
     } else {
-      barres.push({ a, pension: h.pension, reserve: 0, complement: Math.min(p.revenu, p.besoin), manque: Math.max(0, p.besoin - p.revenu), besoin: h.pension + p.besoin });
+      barres.push({ a, pension: h.pension, loyers: p.loyersNets, reserve: 0, complement: Math.min(p.revenu, p.besoin), manque: Math.max(0, p.besoin - p.revenu), besoin: h.pension + p.loyersNets + p.besoin });
     }
   }
   const L = compact ? 320 : 820, H = compact ? 150 : 260, ml = compact ? 0 : 58, mt = 8, mb = 22;
   const max = Math.ceil(Math.max(...barres.map((b) => b.besoin)) / 500) * 500;
   const lb = (L - ml) / barres.length, Y = (v) => mt + (1 - v / max) * (H - mt - mb);
-  const COUL = { pension: '#1F3864', reserve: '#6E8FC9', complement: '#1E7B45', manque: '#F3C9A0' };
+  const COUL = { pension: '#1F3864', loyers: '#D9A441', reserve: '#6E8FC9', complement: '#1E7B45', manque: '#F3C9A0' };
   let rects = '', ligne = '', etiq = '';
   barres.forEach((b, i) => {
     let bas = 0;
-    for (const k of ['pension', 'reserve', 'complement', 'manque']) {
+    for (const k of ['pension', 'loyers', 'reserve', 'complement', 'manque']) {
       if (b[k] > 0.5) rects += `<rect x="${(ml + i * lb + 0.5).toFixed(1)}" y="${Y(bas + b[k]).toFixed(1)}" width="${(lb - 1).toFixed(1)}" height="${(Y(bas) - Y(bas + b[k])).toFixed(1)}" fill="${COUL[k]}"/>`;
       bas += b[k];
     }
@@ -326,9 +348,9 @@ function revenusParAge(d, compact = false) {
   ].join(' ');
   return `<div class="carte" style="gap:10px">
     <div class="rangee"><h2 style="font-size:14px;font-weight:600">Revenus par âge</h2><div class="petit">par mois, euros d'aujourd'hui${compact ? '' : ' · avec les réglages du simulateur'}</div></div>
-    <svg viewBox="0 0 ${L} ${H}" role="img" aria-label="Revenus mensuels de ${p.ageDepart} à ${fin - 1} ans : pension, réserve, complément tiré du capital, et manque par rapport aux dépenses. ${esc(lecture)}">
+    <svg viewBox="0 0 ${L} ${H}" role="img" aria-label="Revenus mensuels de ${p.ageDepart} à ${fin - 1} ans : pension, loyers SCPI, réserve, complément tiré du capital, et manque par rapport aux dépenses. ${esc(lecture)}">
       ${grille}${rects}<polyline points="${ligne}" fill="none" stroke="#1B2430" stroke-width="1.5"/>${etiq}</svg>
-    <div class="legende"><span><i style="background:${COUL.pension}"></i>Pension</span><span><i style="background:${COUL.reserve}"></i>Réserve</span><span><i style="background:${COUL.complement}"></i>Complément tiré du capital</span><span><i style="background:${COUL.manque}"></i>Manque</span><span><i style="background:#1B2430;height:2px"></i>Dépenses</span></div>
+    <div class="legende"><span><i style="background:${COUL.pension}"></i>Pension</span>${p.loyersNets > 0 ? `<span><i style="background:${COUL.loyers}"></i>Loyers SCPI nets</span>` : ''}<span><i style="background:${COUL.reserve}"></i>Réserve</span><span><i style="background:${COUL.complement}"></i>Complément tiré du capital</span><span><i style="background:${COUL.manque}"></i>Manque</span><span><i style="background:#1B2430;height:2px"></i>Dépenses</span></div>
     <p class="sous">${lecture}</p></div>`;
 }
 
@@ -366,7 +388,7 @@ function sensibilite(d) {
     [`Dépense de 10 000 € en ${h.annee + 1}`, { ponctuelle: { montant: 10000, annee: h.annee + 1 } }],
     [`Krach de 20 % juste avant ${h.ageComplement} ans`, { choc: 0.2 }],
     ['Inflation durable à 3,5 % par an', {}, { inflation: 0.035 }],
-    ['Stagflation : rendement 2 %, inflation 3,5 %, loyers − 30 %', { rendement: 0.02 }, { inflation: 0.035, scpi: h.scpi * 0.7 }],
+    ['Stagflation : rendement 2 %, inflation 3,5 %, loyers − 30 %', { rendement: 0.02 }, { inflation: 0.035, scpi: h.scpi * 0.7, scpiApres: (h.scpiApres ?? 0) * 0.7 }],
     ['Krach de 35 % et fonds bloqué restitué à 80 %', { choc: 0.35 }, { fpciMontant: h.fpciMontant * 0.8 }],
   ].map(([nom, o, hyp]) => { const p = projeter({ ...h, ...(hyp || {}) }, { rendement: h.rdtPeaCentral, ...o }); return { nom, delta: (p.couvert - base.couvert) * 100, couvert: p.couvert }; })
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
@@ -387,7 +409,7 @@ function explication(d) {
   const dix = (x) => (x * 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
   return `<div class="carte" style="padding:14px 18px;display:block"><details data-calcul ${etat.calcul ? 'open' : ''}><summary style="font-size:14px;font-weight:600;cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px">Comment ce chiffre est-il calculé ?</summary>
     <div style="display:flex;flex-direction:column;gap:12px;padding:4px 0 6px">
-    ${etape('1. Le besoin mensuel après ' + h.ageComplement + ' ans', `dépenses ${euro(h.depenses)} − pension ${euro(h.pension)} + aide ${euro(h.aide)} = <b>${euro(p.besoin)}</b>`)}
+    ${etape('1. Le besoin mensuel après ' + h.ageComplement + ' ans', `dépenses ${euro(h.depenses)} − pension ${euro(h.pension)}${p.loyersNets > 0 ? ` − loyers SCPI nets ${euro(p.loyersNets)}` : ''} + aide ${euro(h.aide)} = <b>${euro(p.besoin)}</b>`)}
     ${etape('2. Le PEA à ' + h.ageComplement + ' ans, à ' + dix(p.rendement) + ' % par an', `${euro(p.brut)}, dont ${euro(p.principal)} versés et ${euro(p.gains)} de gains`)}
     ${etape('3. Après prélèvements sociaux', `${euro(p.brut)} − ${dix(h.ps)} % × ${euro(p.gains)} = <b>${euro(p.net)}</b>`)}
     ${etape('4. Avec le reste de la réserve', `${euro(p.net)} + ${euro(p.reliquat)} = ${euro(p.total)}, en euros de ${h.annee + p.horizon}`)}
@@ -619,7 +641,7 @@ function commandes(d) {
   return `<div class="carte" style="gap:18px">
     <div class="rangee"><h2 style="font-size:14px;font-weight:600">Simulateur</h2><button type="button" class="lien" data-raz style="min-height:0">Revenir à la référence</button></div>
     <div class="grille-cmd">
-      ${reglage('epargnePlus', 'Épargne en plus chaque mois', s.epargnePlus, 0, 1500, 25, (v) => `+ ${euro(v)}`)}
+      ${reglageAvantRetraite(d)}
       ${reglage('depenses', 'Dépenses à la retraite', s.depenses, depMin, Math.round((h.depenses * 1.4) / 50) * 50, 50, (v) => `${euro(v)}/mois`)}
       ${reglage('aide', `Aide et adaptation après ${h.ageComplement} ans`, s.aide, 0, 3000, 50, (v) => `${euro(v)}/mois`)}
       <div class="reglage"><div style="font-size:13px;font-weight:500">Rendement supposé des actions</div>
@@ -741,7 +763,8 @@ racine.addEventListener('click', (ev) => {
 racine.addEventListener('input', (ev) => {
   const c = ev.target.dataset.reglage;
   if (!c) return;
-  etat.sim[c] = Number(ev.target.value);
+  if (c === 'depActuelles') etat.sim.epargnePlus = baseDepenses(etat.donnees) - Number(ev.target.value);
+  else etat.sim[c] = Number(ev.target.value);
   const y = window.scrollY;
   afficher();
   const champ = document.getElementById(`r-${c}`);

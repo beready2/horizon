@@ -86,3 +86,33 @@ test('tirages : reproductibles, ordonnés, et sans volatilité égaux au calcul 
   const fixe = tirages(hyp, { rendement: 0.05 }, { nombre: 20, volatilite: 1e-9 });
   proche(fixe.p50, projeter(hyp, { rendement: 0.05 }).couvert, 1e-6);
 });
+
+test('loyers SCPI après le départ : ils réduisent l\'écart, donc le besoin et les retraits de la réserve', () => {
+  const h2 = { ...hyp, scpiApres: 100, taxeScpiApres: 0.3 };
+  const a = projeter(hyp, { rendement: 0.05 }), b = projeter(h2, { rendement: 0.05 });
+  proche(b.loyersNets, 70);
+  proche(a.ecart - b.ecart, 70); proche(a.besoin - b.besoin, 70);
+  assert.ok(b.couvert > a.couvert && b.besoinPont < a.besoinPont);
+  proche(a.brut, b.brut); proche(a.principal, b.principal);
+});
+test('loyers SCPI : jamais plus que l\'écart, et coupés par l\'interrupteur', () => {
+  const grands = projeter({ ...hyp, scpiApres: 5000, taxeScpiApres: 0 }, { rendement: 0.05 });
+  assert.equal(grands.ecart, 0);
+  const coupes = projeter({ ...hyp, scpiApres: 100, taxeScpiApres: 0.3, scpiActif: 0 }, { rendement: 0.05 });
+  assert.equal(coupes.loyersNets, 0);
+  proche(coupes.couvert, projeter({ ...hyp, scpiActif: 0 }, { rendement: 0.05 }).couvert, 1e-12);
+});
+test('épargne en moins : le versement ne devient jamais négatif', () => {
+  const a = projeter(hyp, { rendement: 0.05, epargnePlus: -100 });
+  const zero = projeter(hyp, { rendement: 0.05, epargnePlus: -100000 });
+  assert.ok(a.principal < projeter(hyp, { rendement: 0.05 }).principal && a.couvert < projeter(hyp, { rendement: 0.05 }).couvert);
+  // Plus aucun versement mensuel : restent le capital initial, les loyers réinvestis avant le départ et la part du fonds bloqué.
+  proche(zero.principal, hyp.peaInitial + 12 * hyp.scpi * hyp.scpiActif * (hyp.ageDepart - hyp.age) + hyp.fpciMontant * (1 - hyp.fpciPartPont));
+});
+test('dépenses actuelles : le solveur trouve le plafond qui donne 100 %', () => {
+  const base = 2300;
+  const couv = (x) => projeter(hyp, { rendement: 0.05, epargnePlus: base - x }).couvert;
+  const x = resoudre(couv, 1, 1000, 3800, false);
+  assert.ok(x < base);
+  proche(couv(x), 1, 1e-9);
+});
