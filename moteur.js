@@ -14,7 +14,7 @@ export function valeurActuelle(taux, n, mensuel) {
 }
 
 // h : hypothèses. opt : { rendement, epargnePlus, choc, depenses, aide, ageDepart,
-// ponctuelle: { montant, annee } }. Une dépense ponctuelle est prise sur la réserve (livrets).
+// ponctuelle: { montant, annee }, rendements: [taux de l'année 1, 2, …] }. Une dépense ponctuelle est prise sur la réserve (livrets).
 export function projeter(h, opt = {}) {
   const rendement = opt.rendement ?? h.rdtPeaCentral;
   const epargnePlus = opt.epargnePlus ?? 0;
@@ -49,7 +49,7 @@ export function projeter(h, opt = {}) {
     const fpciPont = fpci * h.fpciPartPont;
     const retrait = retraite ? ecart * 12 * Math.pow(1 + h.inflation, n) : 0;
 
-    pea = pea * (1 + rendement) + versAnnee + fpciPea;
+    pea = pea * (1 + (opt.rendements ? opt.rendements[n - 1] : rendement)) + versAnnee + fpciPea;
     principal += versAnnee + fpciPea;
     const ponctuel = ponct && h.annee + n - 1 === ponct.annee ? ponct.montant : 0;
     const pontAvant = pont;
@@ -89,9 +89,52 @@ export function projeter(h, opt = {}) {
 
   return {
     horizon, ecart, besoin, ageDepart, anneesReserveNegative, brut, principal, net, reliquat, total, totalAujourdhui,
-    revenu, couvert, capitalNecessaire, ecartCapital, epargneAAjouter,
+    revenu, couvert, capitalNecessaire, ecartCapital, epargneAAjouter, rendement, gains, inflationCumulee, tauxMensuel, mois,
     pontFinal: pont, pontMin: pontMin ?? pont, besoinPont, pontCouvert: (pontMin ?? pont) >= 0,
     depassementPlafond: Math.max(0, principal - h.plafondPea * h.nbPea),
     serie,
   };
+}
+
+// Recherche par dichotomie de la valeur x (entre a et b) pour laquelle f(x) atteint la cible.
+// f doit être monotone sur l'intervalle. Renvoie null si la cible est hors d'atteinte.
+export function resoudre(f, cible, a, b, croissante = true) {
+  const fa = f(a), fb = f(b);
+  if (croissante ? (fa > cible || fb < cible) : (fa < cible || fb > cible)) return null;
+  for (let i = 0; i < 60; i++) {
+    const m = (a + b) / 2, fm = f(m);
+    if ((fm < cible) === croissante) a = m; else b = m;
+  }
+  return (a + b) / 2;
+}
+
+// Générateur pseudo-aléatoire à graine fixe : les mêmes réglages donnent les mêmes tirages.
+function generateur(graine) {
+  let t = graine >>> 0;
+  return () => {
+    t = (t + 0x6D2B79F5) >>> 0;
+    let x = Math.imul(t ^ (t >>> 15), 1 | t);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Tirages de trajectoires : rendement annuel du PEA aléatoire (loi log-normale, moyenne = rendement
+// retenu, écart-type = volatilite). Le reste du modèle est inchangé. Hypothèse, pas une prévision.
+export function tirages(h, opt = {}, { volatilite = 0.15, nombre = 1000, graine = 20261108 } = {}) {
+  const moyenne = opt.rendement ?? h.rdtPeaCentral;
+  const horizon = h.ageComplement - h.age;
+  const sigma = Math.sqrt(Math.log(1 + (volatilite * volatilite) / ((1 + moyenne) * (1 + moyenne))));
+  const mu = Math.log(1 + moyenne) - (sigma * sigma) / 2;
+  const alea = generateur(graine);
+  const normale = () => Math.sqrt(-2 * Math.log(1 - alea())) * Math.cos(2 * Math.PI * alea());
+  const couverts = [];
+  for (let k = 0; k < nombre; k++) {
+    const rendements = Array.from({ length: horizon }, () => Math.exp(mu + sigma * normale()) - 1);
+    couverts.push(projeter(h, { ...opt, rendements }).couvert);
+  }
+  couverts.sort((x, y) => x - y);
+  const centile = (q) => couverts[Math.min(nombre - 1, Math.floor(q * nombre))];
+  const part = (seuil) => couverts.filter((c) => c >= seuil).length / nombre;
+  return { couverts, p10: centile(0.1), p50: centile(0.5), p90: centile(0.9), auMoins100: part(0.995), auMoins80: part(0.8), volatilite, nombre };
 }

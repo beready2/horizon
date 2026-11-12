@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { projeter, mensualite, valeurActuelle } from '../moteur.js';
+import { projeter, mensualite, valeurActuelle, resoudre, tirages } from '../moteur.js';
 import { chiffrer, dechiffrer } from '../coffre.js';
 
 const { hyp } = JSON.parse(await readFile(new URL('../exemple.json', import.meta.url), 'utf8'));
@@ -63,4 +63,26 @@ test('réserve insuffisante : le manque annuel ne dépasse jamais le retrait', (
   assert.equal(p.pontCouvert, false);
   for (const x of p.serie.slice(1)) assert.ok(x.manque >= 0 && x.manque <= x.retrait + 1e-9);
   assert.ok(p.serie.some((x) => x.manque > 0));
+});
+
+test('solveur : le rendement trouvé donne bien 100 % de couverture', () => {
+  const r = resoudre((x) => projeter(hyp, { rendement: x }).couvert, 1, 0, 0.2);
+  proche(projeter(hyp, { rendement: r }).couvert, 1, 1e-9);
+  assert.equal(resoudre((x) => x, 5, 0, 1), null);
+});
+test('solveur : dépenses soutenables (fonction décroissante)', () => {
+  const dep = resoudre((x) => projeter(hyp, { rendement: 0.05, depenses: x }).couvert, 1, hyp.pension, hyp.depenses * 2, false);
+  proche(projeter(hyp, { rendement: 0.05, depenses: dep }).couvert, 1, 1e-9);
+  assert.ok(dep < hyp.depenses);
+});
+test('rendements année par année constants = rendement fixe', () => {
+  const n = hyp.ageComplement - hyp.age;
+  proche(projeter(hyp, { rendements: Array(n).fill(0.05) }).couvert, projeter(hyp, { rendement: 0.05 }).couvert, 1e-12);
+});
+test('tirages : reproductibles, ordonnés, et sans volatilité égaux au calcul fixe', () => {
+  const a = tirages(hyp, { rendement: 0.05 }, { nombre: 300 }), b = tirages(hyp, { rendement: 0.05 }, { nombre: 300 });
+  assert.deepEqual(a.couverts, b.couverts);
+  assert.ok(a.p10 <= a.p50 && a.p50 <= a.p90 && a.auMoins100 <= a.auMoins80);
+  const fixe = tirages(hyp, { rendement: 0.05 }, { nombre: 20, volatilite: 1e-9 });
+  proche(fixe.p50, projeter(hyp, { rendement: 0.05 }).couvert, 1e-6);
 });

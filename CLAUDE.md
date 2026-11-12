@@ -32,10 +32,23 @@ sensibilité, trajectoire du PEA, historique des relevés, budget, scénarios en
 Pas de seconde page ni de redirection : tout nouveau contenu se place dans l'une ou l'autre
 disposition du même code.
 
+## Thèmes
+Deux thèmes, clair et sombre, choisis par un bouton et retenus sur l'appareil. Les couleurs de
+l'interface passent par les variables CSS ; les couleurs écrites en dur dans les graphiques sont
+remplacées à l'affichage par la table `SOMBRE` de `app.js` : toute nouvelle couleur de graphique
+doit y avoir son équivalent sombre.
+
+## En réserve
+Idées notées dans la carte « En réserve » de l'app, à ne pas développer avant d'être utiles :
+rendement réel par placement (taux sur flux datés), retraits en trois poches, simulateur de
+retrait du PEA.
+
 ## Simulateur
 Une dépense ponctuelle est prise sur la réserve (livrets), jamais sur le PEA. Pour un départ plus
 tardif que l'âge de référence, la pension reste celle de l'âge de référence tant qu'aucune
-simulation officielle n'est fournie : l'app le dit à l'écran. Les scénarios enregistrés restent
+simulation officielle n'est fournie : l'app le dit à l'écran. Les trajectoires aléatoires
+(`tirages`) utilisent une graine fixe : mêmes réglages, mêmes résultats. La volatilité est une
+hypothèse affichée comme telle. Les scénarios enregistrés restent
 sur l'appareil (stockage local), ils ne sont jamais publiés.
 
 ## Style
