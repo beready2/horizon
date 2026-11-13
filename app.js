@@ -197,19 +197,26 @@ function depenseMaximale(d) {
   const { s, h } = simuler(d), base = baseDepenses(d);
   const couv = (x) => projeter(h, { ...options(s), epargnePlus: base - x }).couvert;
   const bas = Math.max(1000, base - 1500), haut = base + 1500;
-  if (couv(bas) < 0.995) return { etat: 'impossible', bas };
-  if (couv(haut) >= 0.995) return { etat: 'libre', haut };
+  if (couv(bas) < 1) return { etat: 'impossible', bas };
+  if (couv(haut) >= 1) return { etat: 'libre', haut };
   return { etat: 'valeur', x: resoudre(couv, 1, bas, haut, false) };
 }
 function reglageAvantRetraite(d) {
   const { s } = simuler(d), base = baseDepenses(d);
   if (base === null) return reglage('epargnePlus', 'Épargne en plus chaque mois', s.epargnePlus, 0, 1500, 25, (v) => `+ ${euro(v)}`);
-  const dep = base - s.epargnePlus, visee = d.budget.epargneVisee ?? 0, m = depenseMaximale(d);
+  const { h } = simuler(d);
+  const dep = base - s.epargnePlus, m = depenseMaximale(d);
+  // Épargne réellement retenue par le moteur : le versement sur le PEA ne descend jamais sous zéro, la réserve reste alimentée.
+  const epargne = (vers) => Math.max(0, vers + s.epargnePlus) + h.versPont;
+  const e1 = epargne(h.versPea1), e2 = epargne(h.versPea2);
+  const plan = e1 === e2 ? `<b>${euro(e1)} par mois</b>` : `<b>${euro(e1)} par mois</b>, puis ${euro(e2)} après la fin du crédit`;
+  const marge = typeof d.budget.excedent === 'number'
+    ? ` Le budget relevé dégage ${euro(d.budget.excedent)} par mois à ${euro(base)} de dépenses, revenus variables compris.` : '';
   const lecture = m.etat === 'valeur' ? `Pour être couvert à 100 %, ne pas dépasser <b>${euro(m.x)}</b> par mois avant la retraite.`
     : m.etat === 'libre' ? `La couverture de 100 % est atteinte même avec ${euro(m.haut)} de dépenses.`
     : `Réduire les dépenses actuelles ne suffit pas, même à ${euro(m.bas)} par mois.`;
   return `<div class="reglage">${reglage('depActuelles', 'Dépenses mensuelles avant la retraite', dep, Math.max(1000, Math.round((base - 1000) / 25) * 25), Math.round((base + 500) / 25) * 25, 25, (v) => `${euro(v)}/mois`)}
-    <p class="petit">Épargne qui en découle : <b>${euro(visee + s.epargnePlus)} par mois</b> (visée ${euro(visee)}). Chaque euro non dépensé est placé. ${lecture}</p></div>`;
+    <p class="petit">Épargne retenue par le calcul à ce niveau de dépenses : ${plan}. Chaque euro non dépensé est placé, chaque euro dépensé en plus est retiré du versement sur le PEA.${marge} ${lecture}</p></div>`;
 }
 
 function reglage(cle, libelle, valeur, min, max, pas, fmt) {
