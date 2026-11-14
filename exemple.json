@@ -309,7 +309,6 @@
     }
   },
   "comptes": {
-    "lien": "https://example.org/feuille#range=",
     "lignes": [
       {
         "libelle": "Compte commun",
@@ -317,8 +316,7 @@
         "etablissement": "Banque A",
         "montant": 900,
         "source": "finary",
-        "maj": "2026-11-09",
-        "cellule": "D4"
+        "maj": "2026-11-09"
       },
       {
         "libelle": "Compte en ligne",
@@ -326,8 +324,7 @@
         "etablissement": "Banque B",
         "montant": 30000,
         "source": "saisie",
-        "maj": "2026-11-09",
-        "cellule": "D5"
+        "maj": "2026-11-09"
       },
       {
         "libelle": "Livret A",
@@ -335,8 +332,7 @@
         "etablissement": "Banque A",
         "montant": 6400,
         "source": "finary",
-        "maj": "2026-11-09",
-        "cellule": "D6"
+        "maj": "2026-11-09"
       },
       {
         "libelle": "Livret en ligne",
@@ -345,7 +341,6 @@
         "montant": 20000,
         "source": "saisie",
         "maj": "2026-11-09",
-        "cellule": "D7",
         "aConfirmer": true
       }
     ]

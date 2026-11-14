@@ -13,9 +13,9 @@ Ce dépôt est PUBLIC. Il sert une app de finances personnelles dont les donnée
 La feuille Google « finance » du projet BE READY fait foi. L'app n'a pas de données propres :
 `donnees.chiffre.json` est un export chiffré de la feuille, refait à chaque relevé.
 La phrase secrète est lue dans la feuille (onglet Lisez-moi, ligne « Phrase secrète de l'app »).
-L'app n'écrit jamais dans la feuille. Le détail des comptes et des livrets vient de l'onglet Comptes ; le stylo
-affiché à côté d'un compte saisi à la main ouvre la feuille sur la cellule à modifier (lien présent dans l'export
-chiffré seulement, jamais en clair dans le dépôt). La nouvelle valeur apparaît dans l'app à l'export suivant.
+L'app n'écrit jamais dans la feuille et ne contient aucun lien vers elle. Le détail des comptes et des livrets vient de
+l'onglet Comptes, où le foyer saisit les soldes qui ne viennent pas de Finary ; une valeur modifiée apparaît dans
+l'app à l'export suivant.
 
 ## Export (à chaque relevé)
 1. Construire `prive/donnees.json` au format de `exemple.json` (mêmes clés), depuis la feuille,

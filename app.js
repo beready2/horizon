@@ -225,22 +225,17 @@ function reglage(cle, libelle, valeur, min, max, pas, fmt) {
     <input id="r-${cle}" type="range" data-reglage="${cle}" min="${min}" max="${max}" step="${pas}" value="${valeur}"></div>`;
 }
 
-// Détail d'un poste (comptes, livrets) : une ligne par compte. Le stylo ouvre la feuille sur la cellule à modifier ;
-// l'app n'écrit jamais rien elle-même, la feuille reste la seule source.
-const STYLO = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+// Détail d'un poste (comptes, livrets) : une ligne par compte, avec son origine. La saisie se fait dans la feuille
+// (onglet Comptes) ; l'app n'écrit rien et ne garde aucun lien vers la feuille.
 function detailComptes(d, groupe) {
   const c = d.comptes;
   const lignes = c && Array.isArray(c.lignes) ? c.lignes.filter((l) => l.groupe === groupe) : [];
   if (!lignes.length) return '';
   const saisie = lignes.some((l) => l.source === 'saisie');
   return `<div class="detail">${lignes.map((l) => {
-    const manuel = l.source === 'saisie';
-    const origine = manuel ? `saisi le ${l.maj ? esc(dateCourte(l.maj)) : '—'}` : 'repris de Finary';
-    const stylo = manuel && c.lien && l.cellule
-      ? `<a class="stylo" href="${esc(c.lien + l.cellule)}" target="_blank" rel="noopener" aria-label="Modifier ${esc(l.libelle)} dans la feuille">${STYLO}</a>`
-      : '<span class="stylo vide"></span>';
-    return `<div class="compte"><div class="nom">${esc(l.libelle)}<span class="petit"${l.aConfirmer ? ' style="color:var(--ambre)"' : ''}>${l.aConfirmer ? 'à confirmer · ' : ''}${origine}</span></div><div class="val">${euro(l.montant)}</div>${stylo}</div>`;
-  }).join('')}${saisie ? `<p class="petit" style="padding:6px 0 10px">Le stylo ouvre la feuille finance sur la cellule du compte. L'app reprend le nouveau montant au relevé suivant.</p>` : ''}</div>`;
+    const origine = l.source === 'saisie' ? `saisi le ${l.maj ? esc(dateCourte(l.maj)) : '—'}` : 'repris de Finary';
+    return `<div class="compte"><div class="nom">${esc(l.libelle)}<span class="petit"${l.aConfirmer ? ' style="color:var(--ambre)"' : ''}>${l.aConfirmer ? 'à confirmer · ' : ''}${origine}</span></div><div class="val">${euro(l.montant)}</div></div>`;
+  }).join('')}${saisie ? `<p class="petit" style="padding:6px 0 10px">Les montants saisis se modifient dans la feuille finance, onglet Comptes. L'app les reprend à l'export suivant.</p>` : ''}</div>`;
 }
 
 // Épargne réellement versée depuis le début du modèle, comparée à ce que le plan prévoyait à ce jour.
