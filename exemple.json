@@ -307,5 +307,62 @@
         ]
       ]
     }
+  },
+  "comptes": {
+    "lien": "https://example.org/feuille#range=",
+    "lignes": [
+      {
+        "libelle": "Compte commun",
+        "groupe": "comptes",
+        "etablissement": "Banque A",
+        "montant": 900,
+        "source": "finary",
+        "maj": "2026-11-09",
+        "cellule": "D4"
+      },
+      {
+        "libelle": "Compte en ligne",
+        "groupe": "comptes",
+        "etablissement": "Banque B",
+        "montant": 30000,
+        "source": "saisie",
+        "maj": "2026-11-09",
+        "cellule": "D5"
+      },
+      {
+        "libelle": "Livret A",
+        "groupe": "livrets",
+        "etablissement": "Banque A",
+        "montant": 6400,
+        "source": "finary",
+        "maj": "2026-11-09",
+        "cellule": "D6"
+      },
+      {
+        "libelle": "Livret en ligne",
+        "groupe": "livrets",
+        "etablissement": "Banque B",
+        "montant": 20000,
+        "source": "saisie",
+        "maj": "2026-11-09",
+        "cellule": "D7",
+        "aConfirmer": true
+      }
+    ]
+  },
+  "epargne": {
+    "depuis": "2026-08-10",
+    "lignes": [
+      {
+        "libelle": "PEA, capital de départ compris",
+        "verse": 5600,
+        "prevu": 10000
+      },
+      {
+        "libelle": "Réserve (assurance-vie)",
+        "verse": 100,
+        "prevu": 100
+      }
+    ]
   }
 }

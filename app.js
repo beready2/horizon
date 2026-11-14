@@ -110,6 +110,7 @@ function ecranAccueil(d) {
         <div class="petit">${p.epargneAAjouter > 0 ? 'pour atteindre 100 %' : 'objectif atteint'}</div>
       </div>
     </div>
+    ${epargneVersee(d)}
     ${explication(d)}
     ${alertes.length ? `<div class="carte" style="gap:10px;padding:16px 18px">
       <h2 style="font-size:14px;font-weight:600">À surveiller</h2>
@@ -224,6 +225,41 @@ function reglage(cle, libelle, valeur, min, max, pas, fmt) {
     <input id="r-${cle}" type="range" data-reglage="${cle}" min="${min}" max="${max}" step="${pas}" value="${valeur}"></div>`;
 }
 
+// Détail d'un poste (comptes, livrets) : une ligne par compte. Le stylo ouvre la feuille sur la cellule à modifier ;
+// l'app n'écrit jamais rien elle-même, la feuille reste la seule source.
+const STYLO = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+function detailComptes(d, groupe) {
+  const c = d.comptes;
+  const lignes = c && Array.isArray(c.lignes) ? c.lignes.filter((l) => l.groupe === groupe) : [];
+  if (!lignes.length) return '';
+  const saisie = lignes.some((l) => l.source === 'saisie');
+  return `<div class="detail">${lignes.map((l) => {
+    const manuel = l.source === 'saisie';
+    const origine = manuel ? `saisi le ${l.maj ? esc(dateCourte(l.maj)) : '—'}` : 'repris de Finary';
+    const stylo = manuel && c.lien && l.cellule
+      ? `<a class="stylo" href="${esc(c.lien + l.cellule)}" target="_blank" rel="noopener" aria-label="Modifier ${esc(l.libelle)} dans la feuille">${STYLO}</a>`
+      : '<span class="stylo vide"></span>';
+    return `<div class="compte"><div class="nom">${esc(l.libelle)}<span class="petit"${l.aConfirmer ? ' style="color:var(--ambre)"' : ''}>${l.aConfirmer ? 'à confirmer · ' : ''}${origine}</span></div><div class="val">${euro(l.montant)}</div>${stylo}</div>`;
+  }).join('')}${saisie ? `<p class="petit" style="padding:6px 0 10px">Le stylo ouvre la feuille finance sur la cellule du compte. L'app reprend le nouveau montant au relevé suivant.</p>` : ''}</div>`;
+}
+
+// Épargne réellement versée depuis le début du modèle, comparée à ce que le plan prévoyait à ce jour.
+function epargneVersee(d) {
+  const e = d.epargne;
+  if (!e || !Array.isArray(e.lignes) || !e.lignes.length) return '';
+  return `<div class="carte" style="gap:12px;padding:16px 18px">
+    <div class="rangee"><h2 style="font-size:14px;font-weight:600">Épargne versée</h2><div class="petit">${e.depuis ? `depuis le ${esc(dateCourte(e.depuis))}` : ''}</div></div>
+    ${e.lignes.map((l) => {
+      const rien = !(l.prevu > 0) && !(l.verse > 0);
+      const f = l.prevu > 0 ? Math.min(1, l.verse / l.prevu) : (l.verse > 0 ? 1 : 0), ok = l.verse >= l.prevu - 0.5;
+      const couleur = rien ? 'var(--gris)' : ok ? 'var(--vert)' : 'var(--ambre)';
+      return `<div style="display:flex;flex-direction:column;gap:5px">
+        <div class="rangee"><div style="font-size:13px;font-weight:500">${esc(l.libelle)}</div><div style="font-size:13px;font-weight:600;white-space:nowrap;color:${couleur}">${rien ? 'rien de prévu à ce jour' : `${euro(l.verse)} sur ${euro(l.prevu)}`}</div></div>
+        <div class="barre" style="height:8px"><div style="width:${(f * 100).toFixed(1)}%;background:${couleur}"></div></div></div>`;
+    }).join('')}
+    <p class="petit">Versé réellement, comparé à ce que le plan prévoyait à ce jour. C'est le chiffre qui dit si le plan avance.</p></div>`;
+}
+
 function ecranPatrimoine(d) {
   const s = d.suivi, r = s[s.length - 1], avant = s[s.length - 2], t = total(r);
   const postes = POSTES.filter(([k]) => (r[k] || 0) > 0).sort((a, b) => r[b[0]] - r[a[0]]);
@@ -243,7 +279,9 @@ function ecranPatrimoine(d) {
         const dl = avant ? r[k] - (avant[k] || 0) : 0;
         const note = k === 'btc' && gainBtc !== null ? `<span class="petit" style="color:${gainBtc >= 0 ? 'var(--vert)' : 'var(--ambre)'}">${gainBtc >= 0 ? '+' : '−'} ${pct(Math.abs(gainBtc))} depuis l'achat</span>`
           : `<span class="petit">${Math.abs(dl) >= 1 ? `${signe(dl)} depuis le relevé précédent` : `${r[k] / t < 0.01 ? 'moins de 1 %' : pct(r[k] / t)} du total`}</span>`;
-        return `<div class="poste"><div class="puce" style="background:${c}"></div><div class="nom">${n}${note}</div><div class="val">${euro(r[k])}</div></div>`;
+        const tete = `<div class="puce" style="background:${c}"></div><div class="nom">${n}${note}</div><div class="val">${euro(r[k])}</div>`;
+        const detail = detailComptes(d, k);
+        return detail ? `<details class="poste-detail"><summary class="poste">${tete}</summary>${detail}</details>` : `<div class="poste">${tete}</div>`;
       }).join('')}
     </div>
     <div class="grille2">

@@ -66,6 +66,17 @@ input[type=range]{width:100%;height:32px;accent-color:var(--marine);margin:0}
 .puce{width:10px;height:10px;border-radius:3px;flex-shrink:0}
 .poste .nom{flex:1;display:flex;flex-direction:column;gap:2px;font-size:14px;font-weight:500}
 .poste .val{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600}
+.poste-detail{border-bottom:1px solid var(--trait)}
+.poste-detail:last-child{border-bottom:0}
+.poste-detail>summary.poste{border-bottom:0;cursor:pointer}
+.poste-detail>summary.poste::before{order:9;width:16px;text-align:center}
+.detail{padding:0 0 4px 22px}
+.compte{display:flex;align-items:center;gap:8px;min-height:48px;border-top:1px solid var(--trait)}
+.compte .nom{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px;font-weight:500}
+.compte .val{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;white-space:nowrap}
+.stylo{width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--marine);border-radius:12px}
+.stylo svg{width:18px;height:18px}
+.stylo.vide{visibility:hidden}
 .frise{display:flex;gap:14px}
 .frise .rail{display:flex;flex-direction:column;align-items:center}
 .frise .rond{width:12px;height:12px;border-radius:999px;margin-top:4px;flex-shrink:0}
